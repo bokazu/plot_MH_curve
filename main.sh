@@ -1,34 +1,28 @@
 #!/bin/bash
 
+target_dir="./sample_lists/kagome/27site/param6/*.txt"
 
-#========================================変更箇所=====================================#
-site="27"
-sys_num="14"
-sys_site_A="18"
-sys_site_B="9"
-min_up_spin="14"
-max_up_spin="27"
-dir_output="output/data.txt"
-parameter_num="0"
+var1="" #系の総サイト数
+var2="" #部分系2つ+部分系をつなぐbondの本数(sys_numに対応)
+var3="" #部分系1のサイト数(sys_site_Aに対応)
+var4="" #部分系2のサイト数(sys_site_Bに対応)
+var5="" #調べる部分空間について、磁化の最小値を設定する(min_up_spinに対応) 
+var6="" #調べる部分空間について、磁化の最大値を設定する(max_up_spinに対応)
 
-#sample_lists中のjsetテキストfileのコピー先。cppファイルはこのディレクトリ内のfileを使用する
-run_dir="./settings"  #ここは変更しなくて良い
-
-#bondの情報が書かれたテキストファイルをsettingsディレクトリにコピーしてくる
-sample_dir="./sample_lists/kagome/${site}site/param${parameter_num}"
-echo $sample_dir
-#====================================================================================#
-
-#上記ディレクトリ内にあるファイル名を代入する
-sample_files=$(ls $sample_dir/jset*.txt)
-echo $sample_files
-
-#テキストファイルをコピーする
-for f in $sample_files; do
-    cp "$f" $run_dir
+cp $target_dir ./settings
+ 
+for i in $(seq 1 6); do
+        var="var$i"
+        read -r $var < <(sed "${i}q;d" ./settings/system_info.txt)
 done
 
+
+dir_output="./output/data_0.txt"
+
+#===================コードを実行する==============================
 cmake -S . -DCMAKE_CXX_COMPILER=icpx -B build
 cmake --build build
+./build/main_app "$var2" "$var3" "$var4" "$var5" "$var6" "$dir_output"
 
-./build/main_app "$sys_num" "$sys_site_A" "$sys_site_B" "$min_up_spin" "$max_up_spin" "$dir_output"
+echo "Deleting files in ./settings/"
+rm ./settings/*.txt

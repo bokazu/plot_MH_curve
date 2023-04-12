@@ -50,19 +50,40 @@ int main(int argc, char *argv[])
     double start_make_hamiltonian, end_make_hamiltonian, total_time_make_hamiltonian;
     double total_lanczos_time;
 
-    start_make_hamiltonian = omp_get_wtime();
+    // start_make_hamiltonian = omp_get_wtime();
     Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, min_up_spin);
     H.sub_space_check();
     H.set_system_info();
     H.sub_hamiltonian();
-    end_make_hamiltonian = omp_get_wtime();
+    // end_make_hamiltonian = omp_get_wtime();
+    H.MP_sub_lanczos(1000);
 
-    total_lanczos_time = H.MP_sub_lanczos_timetest(1000, dir_output);
-    cout << H << endl;
+    // for (int No = 0; No < H.pair_num; No++)
+    // {
+    //     for (int i = 0; i < H.tot_Sz[No].bm_A_size; i++)
+    //     {
+    //         for (int j = 0; j < H.tot_Sz[No].bm_B_size; j++)
+    //         {
+    //             double val = H.tot_Sz[No].Eig.eigen_mat[i][j];
+    //             if (val >= 2e-02)
+    //                 cout << "evec[" << i << "][" << j << "]=" << setprecision(15) << val << endl;
+    //         }
+    //     }
+    // }
 
-    ofstream ofs(dir_output, std::ios::app);
-    ofs << setw(15) << left << "Construct Hamiltonian"
-        << ","
-        << "Total_lanczos_time" << endl;
-    ofs.close();
+    // total_lanczos_time = H.MP_sub_lanczos_timetest(1000, dir_output);
+    cout << "Eigen value = " << H.eigen_value << endl;
+    // H.tot_Sz[1].H_iso[0].J.print();
+    // H.tot_Sz[1].H_iso[1].J.print();
+    // for (int id = 0; id < H.system_num - 2; id++)
+    // {
+    //     H.tot_Sz[1].H_int[id].J.print();
+    // }
+    // H.clac_spin_rel(27, dir_output);
+
+    // ofstream ofs(dir_output, std::ios::app);
+    // ofs << setw(25) << left << "Construct Hamiltonian[sec]"
+    //     << ","
+    //     << "Total_lanczos_time[sec]" << endl;
+    // ofs.close();
 }
