@@ -1,6 +1,7 @@
 #!/bin/bash
 
-target_dir="./sample_lists/kagome/27site/param6/*.txt"
+target_dir="./sample_lists/kagome/27site/param01/*.txt"
+dir_output="./output/time1.csv"
 
 var1="" #系の総サイト数
 var2="" #部分系2つ+部分系をつなぐbondの本数(sys_numに対応)
@@ -16,8 +17,6 @@ for i in $(seq 1 6); do
         read -r $var < <(sed "${i}q;d" ./settings/system_info.txt)
 done
 
-
-dir_output="./output/data_0.txt"
 
 #===================コードを実行する==============================
 cmake -S . -DCMAKE_CXX_COMPILER=icpx -B build

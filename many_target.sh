@@ -32,7 +32,7 @@ for dir in "${dir_list[@]}"; do
     done
 
 
-    dir_output="./output/data_${start_param}.csv"
+    dir_output="./output/MHdata_${start_param}.csv"
 
     #===================コードを実行する==============================
     cmake -S . -DCMAKE_CXX_COMPILER=icpx -B build
