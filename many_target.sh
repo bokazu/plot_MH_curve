@@ -8,7 +8,10 @@ var3="" #部分系1のサイト数(sys_site_Aに対応)
 var4="" #部分系2のサイト数(sys_site_Bに対応)
 var5="" #調べる部分空間について、磁化の最小値を設定する(min_up_spinに対応) 
 var6="" #調べる部分空間について、磁化の最大値を設定する(max_up_spinに対応)
-start_param=0
+
+#===================jsetファイルを用意する===========================
+
+
 
 #計算を行いたいjsetファイルを格納しているディレクトリのリストを取得する
 from_dir="./sample_lists/kagome/27site"
@@ -32,15 +35,14 @@ for dir in "${dir_list[@]}"; do
     done
 
 
-    dir_output="./output/MHdata_${start_param}.csv"
+    dir_output="./output/MHdata.csv"
 
     #===================コードを実行する==============================
     cmake -S . -DCMAKE_CXX_COMPILER=icpx -B build
     cmake --build build
     ./build/main_app "$var2" "$var3" "$var4" "$var5" "$var6" "$dir_output"
 
-    start_param=$((start_param + 1))
-    #-----------------jsetファイルをto_dirから削除する-----------------
+    #===================jsetファイルをto_dirから削除する==============
     echo "Deleting files in $to_dir"
     rm $to_dir/*
     
