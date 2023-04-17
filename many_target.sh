@@ -34,8 +34,8 @@ for dir in "${dir_list[@]}"; do
         read -r $var < <(sed "${i}q;d" ./settings/system_info.txt)
     done
 
-
-    dir_output="./output/MHdata.csv"
+    param_dir=$(basename "$dir")
+    dir_output="./output/MHdata_$param_dir.csv"
 
     #===================コードを実行する==============================
     cmake -S . -DCMAKE_CXX_COMPILER=icpx -B build
@@ -45,5 +45,13 @@ for dir in "${dir_list[@]}"; do
     #===================jsetファイルをto_dirから削除する==============
     echo "Deleting files in $to_dir"
     rm $to_dir/*
-    
 done
+
+#===================相互作用とplateau幅の関係を調べるための処理===
+#outputディレクトリ内にあるcsvについてのloop処理をおこなう
+    #1. dir_outputのcsvファイルから知りたいplateau幅の情報(3~6列目)を読み込む
+    #2. 適当なファイル(hoge.txt)に書き込む
+#loop end
+
+#上記のhoge.txtをserach_plateau_width.cppに渡して、相互作用とプラトー幅について適当なファイルに書き出す(あとはgnuplotで
+#plotする)

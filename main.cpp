@@ -63,5 +63,5 @@ int main(int argc, char *argv[])
     // cout << H << endl;
 
     /*--------磁化曲線をplotするためのdataを得る場合にはこちらを使用する-------*/
-    MP_plot_MHcurve(sys_num, sys_site_A, sys_site_B, max_up_spin, min_up_spin, file, dir_output);
+    MP_schedule_plot_MHcurve(sys_num, sys_site_A, sys_site_B, max_up_spin, min_up_spin, file, dir_output);
 }
