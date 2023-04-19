@@ -4908,13 +4908,18 @@ void Subsystem_Sz::MP_schedule_calc_beta_oddstep(const int tri_mat_dim, const in
 };
 
 /*磁化曲線のplotを行う*/
-void plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, vector<string> &file)
+void plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, vector<string> &file, string GNUPLOT_DATA_DIR)
 {
   vector<double> M;     // 磁化の情報を格納するための配列
   vector<double> e_min; // 各部分空間における基底状態のエネルギー固有値を代入するための配列
 
   vector<double> plot_h; // 交点のh座標を格納する(横軸)
   vector<double> plot_m; // 交点のM座標を格納する(縦軸)
+
+  double abs_of_dif_Jr_Jg = abs(J_red - J_green);  //|J_red - J_green|の値
+  double abs_of_dif_Jr_Jb = abs(J_red - J_blue);   //|J_red - J_blue|の値
+  double abs_of_dif_Jg_Jb = abs(J_green - J_blue); //|J_green - J_blue|の値
+  vector<double> plateau_width;                    // h_{i+1} - h_iの値を格納する
 
   for (int up = min_up_spin; up < max_up_spin + 1; up++)
   {
@@ -4947,45 +4952,79 @@ void plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, 
   {
     vector<double> mi_intersec(M.size(), 20.0); // M_iとM_i+1...との交点のx座標を格納した配列
 
-    for (int k = i + 1; k < M.size() - 1; k++) // M_iとM_i+1の交点の座標を計算して記録
+    for (int k = i + 1; k < M.size(); k++) // M_iとM_i+1の交点の座標を計算して記録
     {
-      // cout << "k-(i+1) = " << k - (i + 1) << endl;
       mi_intersec[k - (i + 1)] = double((e_min[k] - e_min[i]) / (k - i));
-      // cout << double((e_min[k] - e_min[i]) / k) << endl;
     }
 
     // 列挙した交点のうち、最もx座標の値が小さいものを選択して記録する
     auto min_index = distance(mi_intersec.begin(), min_element(mi_intersec.begin(), mi_intersec.end())); // min_indexの方はsize_t
-    // cout << "min index = " << int(min_index) << endl;
-    // cout << "mi_intersec[min_index] = " << mi_intersec[min_index] << endl;
+    // M[i]とM[i+1]のhの交点座標 > M[i]とM[i+2]のhの交点座標の場合にM[i+1]とM[i+2],M[i+3]...のhの交点を調べるのはskipする
+    int skip_itr = int(min_index) + 1;
+
+    // skipされるぶんについても値を出力する
+    for (int l = 0; l < skip_itr - 1; l++)
+    {
+      plot_h.push_back(mi_intersec[min_index]);
+      plot_m.push_back(M[i + l + 1]);
+    }
+
     plot_h.push_back(mi_intersec[min_index]);
     plot_m.push_back(M[i + 1]);
     // 上記に該当する磁化のindexを取得する
     i += int(min_index); // M_iとM_{i+α}の交点が最小だった場合には、M_{i+α-1}に着目したloopはskipする。
   }
 
-  plot_h[plot_h.size() - 1] = plot_h[plot_h.size() - 2];
+  //====================== プラトー幅を調べる ===============================
+  double width;
+  for (int i = 0; i < M.size() - 2; i++)
+  {
+    width = plot_h[i + 1] - plot_h[i];
+    plateau_width.push_back(width);
+  }
+
+  plateau_width.push_back(0);
+
   // 交点の情報の表示
   cout
       << "================================================\n";
-  cout << setw(5) << "M"
-       << "  " << setw(10) << "h" << endl;
+  cout << setw(5) << "h"
+       << "  " << setw(16) << "M"
+       << " "
+       << "J_{red}"
+       << " "
+       << "J_{green}"
+       << " "
+       << "J_{blue}"
+       << " "
+       << "plateau width" << endl;
   cout << "------------------------------------------------\n";
   for (int i = 0; i < plot_h.size(); i++)
   {
-    cout << setw(5) << plot_m[i]
-         << "  " << setw(10) << plot_h[i] << endl;
+    cout << left << setw(5) << plot_h[i]
+         << " " << setw(15) << plot_m[i]
+         << " " << J_red
+         << " " << J_green
+         << " " << J_blue
+         << " " << plateau_width[i] << endl;
   }
   cout << "================================================\n";
 
   // 交点の情報をファイルへ書き出す
 
-  ofstream plateau_data("./plateau/kagome_18site_uniform/data.txt");
+  int site_num = sys_site_A + sys_site_B;
+  ofstream plateau_data(GNUPLOT_DATA_DIR);
   for (int i = 0; i < plot_h.size(); i++)
   {
-    plateau_data << plot_h[i] << " " << plot_m[i] << endl;
+    plateau_data << left << plot_h[i]
+                 << " " << setw(15) << plot_m[i]
+                 << " " << J_red
+                 << " " << J_green
+                 << " " << J_blue
+                 << " " << plateau_width[i] << endl;
   }
 
+  plateau_data.close();
   // FILE *gnuplot = popen("gnuplot -persist", "w");
   // fprintf(gnuplot, "set key left top\n");
   // fprintf(gnuplot, "set xrange[0:%f]\n", plot_h[plot_h.size() - 1] + 0.5);
@@ -4999,13 +5038,18 @@ void plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, 
 }
 
 /*磁化曲線のplotを行う*/
-void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, vector<string> &file, string GNUPLOT_DATA_DIR)
+void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, vector<string> &file, string GNUPLOT_DATA_DIR)
 {
   vector<double> M;     // 磁化の情報を格納するための配列
   vector<double> e_min; // 各部分空間における基底状態のエネルギー固有値を代入するための配列
 
   vector<double> plot_h; // 交点のh座標を格納する(横軸)
   vector<double> plot_m; // 交点のM座標を格納する(縦軸)
+
+  double abs_of_dif_Jr_Jg = abs(J_red - J_green);  //|J_red - J_green|の値
+  double abs_of_dif_Jr_Jb = abs(J_red - J_blue);   //|J_red - J_blue|の値
+  double abs_of_dif_Jg_Jb = abs(J_green - J_blue); //|J_green - J_blue|の値
+  vector<double> plateau_width;                    // h_{i+1} - h_iの値を格納する
 
   for (int up = min_up_spin; up < max_up_spin + 1; up++)
   {
@@ -5040,30 +5084,58 @@ void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spi
 
     for (int k = i + 1; k < M.size(); k++) // M_iとM_i+1の交点の座標を計算して記録 k < M.size() - 1 -> k < M.size()
     {
-      // cout << "k-(i+1) = " << k - (i + 1) << endl;
       mi_intersec[k - (i + 1)] = double((e_min[k] - e_min[i]) / (k - i));
-      // cout << double((e_min[k] - e_min[i]) / k) << endl;
     }
 
     // 列挙した交点のうち、最もx座標の値が小さいものを選択して記録する
     auto min_index = distance(mi_intersec.begin(), min_element(mi_intersec.begin(), mi_intersec.end())); // min_indexの方はsize_t
     int skip_itr = int(min_index) + 1;
+
+    // skipされるぶんについても値を出力する
+    for (int l = 0; l < skip_itr - 1; l++)
+    {
+      plot_h.push_back(mi_intersec[min_index]);
+      plot_m.push_back(M[i + l + 1]);
+    }
+
     plot_h.push_back(mi_intersec[min_index]);
     plot_m.push_back(M[i + skip_itr]);
     // 上記に該当する磁化のindexを取得する
     i += int(min_index); // M_iとM_{i+α}の交点が最小だった場合には、M_{i+α-1}に着目したloopはskipする。
   }
 
+  //====================== プラトー幅を調べる ===============================
+  double width;
+  for (int i = 0; i < M.size() - 2; i++)
+  {
+    width = plot_h[i + 1] - plot_h[i];
+    plateau_width.push_back(width);
+  }
+
+  plateau_width.push_back(0);
+
   // 交点の情報の表示
   cout
       << "================================================\n";
-  cout << setw(5) << "M"
-       << "  " << setw(10) << "h" << endl;
+  cout << setw(5) << "h"
+       << "  " << setw(16) << "M"
+       << " "
+       << "J_{red}"
+       << " "
+       << "J_{green}"
+       << " "
+       << "J_{blue}"
+       << " "
+       << "plateau width" << endl;
   cout << "------------------------------------------------\n";
   for (int i = 0; i < plot_h.size(); i++)
   {
-    cout << setw(5) << plot_m[i]
-         << "  " << setw(10) << plot_h[i] << endl;
+    cout << left << setw(5) << plot_h[i]
+         << " " << setw(15) << plot_m[i]
+         << " " << J_red
+         << " " << J_green
+         << " " << J_blue
+         << " " << plateau_width[i] << endl;
   }
   cout << "================================================\n";
 
@@ -5073,7 +5145,12 @@ void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spi
   ofstream plateau_data(GNUPLOT_DATA_DIR);
   for (int i = 0; i < plot_h.size(); i++)
   {
-    plateau_data << plot_h[i] << " " << plot_m[i] << endl;
+    plateau_data << left << plot_h[i]
+                 << " " << setw(15) << plot_m[i]
+                 << " " << J_red
+                 << " " << J_green
+                 << " " << J_blue
+                 << " " << plateau_width[i] << endl;
   }
 
   plateau_data.close();
@@ -5091,7 +5168,7 @@ void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spi
 }
 
 /*磁化曲線のplotを行う*/
-void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, vector<string> &file, string GNUPLOT_DATA_DIR)
+void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, vector<string> &file, string GNUPLOT_DATA_DIR)
 {
   vector<double> M;     // 磁化の情報を格納するための配列
   vector<double> e_min; // 各部分空間における基底状態のエネルギー固有値を代入するための配列
@@ -5099,10 +5176,10 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
   vector<double> plot_h; // 交点のh座標を格納する(横軸)
   vector<double> plot_m; // 交点のM座標を格納する(縦軸)
 
-  double abs_of_dif_Jr_Jg;      //|J_red - J_green|の値
-  double abs_of_dif_Jr_Jb;      //|J_red - J_blue|の値
-  double abs_of_dif_Jg_Jb;      //|J_green - J_blue|の値
-  vector<double> plateau_width; // h_{i+1} - h_iの値を格納する
+  double abs_of_dif_Jr_Jg = abs(J_red - J_green);  //|J_red - J_green|の値
+  double abs_of_dif_Jr_Jb = abs(J_red - J_blue);   //|J_red - J_blue|の値
+  double abs_of_dif_Jg_Jb = abs(J_green - J_blue); //|J_green - J_blue|の値
+  vector<double> plateau_width;                    // h_{i+1} - h_iの値を格納する
 
   for (int up = min_up_spin; up < max_up_spin + 1; up++)
   {
@@ -5127,60 +5204,70 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
     M[i] /= M[max_index];
   }
 
+  // M0についてはここで格納する
   plot_h.push_back(0);
   plot_m.push_back(M[0]);
 
   // E-hグラフにおける交点を求める処理を以下で行う
+  // M[i]とM[i+1]の交点を求める
   for (int i = 0; i < M.size() - 1; i++)
   {
     vector<double> mi_intersec(M.size(), 20.0); // M_iとM_i+1,M_i+2...との交点のx座標を格納した配列
 
-    for (int k = i + 1; k < M.size() - 1; k++) // M_iとM_i+1の交点の座標を計算して記録
+    for (int k = i + 1; k < M.size(); k++) // M_iとM_i+1の交点の座標を計算して記録
     {
-      // cout << "k-(i+1) = " << k - (i + 1) << endl;
       mi_intersec[k - (i + 1)] = double((e_min[k] - e_min[i]) / (k - i));
-      // cout << double((e_min[k] - e_min[i]) / k) << endl;
     }
 
     // 列挙した交点のうち、最もx座標の値が小さいものを選択して記録する
     auto min_index = distance(mi_intersec.begin(), min_element(mi_intersec.begin(), mi_intersec.end())); // min_indexの方はsize_t
-
+    // M[i]とM[i+1]のhの交点座標 > M[i]とM[i+2]のhの交点座標の場合にM[i+1]とM[i+2],M[i+3]...のhの交点を調べるのはskipする
     int skip_itr = int(min_index) + 1;
-    plot_h.push_back(mi_intersec[min_index]);
+
+    // skipされるぶんについても値を出力する
+    for (int l = 0; l < skip_itr - 1; l++)
+    {
+      plot_h.push_back(mi_intersec[min_index]);
+      plot_m.push_back(M[i + l + 1]);
+    }
+
+    plot_h.push_back(mi_intersec[min_index]); // 変更箇所2
     plot_m.push_back(M[i + skip_itr]);
     // 上記に該当する磁化のindexを取得する
     i += int(min_index); // M_iとM_{i+α}の交点が最小だった場合には、M_{i+α-1}に着目したloopはskipする。
   }
 
-  // プラトー幅を調べる
+  //====================== プラトー幅を調べる ===============================
   double width;
-  for (int i = 0; i < M.size() - 2; i++)
+  for (int i = 0; i < M.size() - 1; i++)
   {
     width = plot_h[i + 1] - plot_h[i];
     plateau_width.push_back(width);
   }
 
+  plateau_width.push_back(0.);
+
   // 交点の情報の表示
   cout
       << "================================================\n";
-  cout << setw(5) << "M"
-       << "  " << setw(16) << "h"
+  cout << internal << setw(15) << "h"
+       << "  " << setw(15) << "M"
        << " "
-       << "|J_{red} - J_{green}|"
+       << "J_{red}"
        << " "
-       << "|J_{red} - J_{blue}|"
+       << "J_{green}"
        << " "
-       << "|J_{green} - J_{blue}|"
+       << "J_{blue}"
        << " "
        << "plateau width" << endl;
   cout << "------------------------------------------------\n";
   for (int i = 0; i < plot_h.size(); i++)
   {
-    cout << left << setw(5) << plot_m[i]
-         << " " << setw(15) << plot_h[i]
-         << " " << abs_of_dif_Jr_Jg
-         << " " << abs_of_dif_Jr_Jb
-         << " " << abs_of_dif_Jg_Jb
+    cout << setprecision(15) << left << setw(15) << plot_h[i]
+         << " " << setw(15) << plot_m[i]
+         << " " << J_red
+         << " " << J_green
+         << " " << J_blue
          << " " << plateau_width[i] << endl;
   }
   cout << "================================================\n";
@@ -5191,11 +5278,11 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
   ofstream plateau_data(GNUPLOT_DATA_DIR);
   for (int i = 0; i < plot_h.size(); i++)
   {
-    plateau_data << plot_m[i]
-                 << " " << setw(15) << plot_h[i]
-                 << " " << abs_of_dif_Jr_Jg
-                 << " " << abs_of_dif_Jr_Jb
-                 << " " << abs_of_dif_Jg_Jb
+    plateau_data << setprecision(15) << left << plot_h[i]
+                 << " " << setw(15) << plot_m[i]
+                 << " " << J_red
+                 << " " << J_green
+                 << " " << J_blue
                  << " " << plateau_width[i] << endl;
   }
 
