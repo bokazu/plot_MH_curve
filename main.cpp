@@ -21,19 +21,23 @@ int main(int argc, char *argv[])
     // min_up_spinからmax_up_spinまでの各部分空間での最小エネルギーを調べる際の雛形
     vector<string> file = {"./settings/jset0.txt", "./settings/jset1.txt", "./settings/jset2.txt"};
     int sys_num, sys_site_A, sys_site_B, min_up_spin, max_up_spin;
+    double J_red, J_green, J_blue;
     std::string dir_output;
 
     cout << "argc = " << argc << endl;
-    if (argc == 7)
+    if (argc == 10)
     {
         sys_num = stoi(argv[1]);
         sys_site_A = stoi(argv[2]);
         sys_site_B = stoi(argv[3]);
         min_up_spin = stoi(argv[4]);
         max_up_spin = stoi(argv[5]);
-        dir_output = argv[6];
+        J_red = atof(argv[6]);
+        J_green = atof(argv[7]);
+        J_blue = atof(argv[8]);
+        dir_output = argv[9];
 
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 10; i++)
         {
             cout << "argv[" << i << "] = " << argv[i] << endl;
         }
@@ -63,5 +67,5 @@ int main(int argc, char *argv[])
     // cout << H << endl;
 
     /*--------磁化曲線をplotするためのdataを得る場合にはこちらを使用する-------*/
-    MP_schedule_plot_MHcurve(sys_num, sys_site_A, sys_site_B, max_up_spin, min_up_spin, file, dir_output);
+    MP_schedule_plot_MHcurve(sys_num, sys_site_A, sys_site_B, max_up_spin, min_up_spin, J_red, J_green, J_blue, file, dir_output);
 }

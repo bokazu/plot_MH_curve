@@ -203,9 +203,9 @@ void MP_schedule_vec_init(int dim, T *vec)
     }
 }
 
-void plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, std::vector<std::string> &file);
-void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, std::vector<std::string> &file, std::string GNUPLOT_DATA_DIR);
-void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, std::vector<std::string> &file, std::string GNUPLOT_DATA_DIR);
+void plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string GNUPLOT_DATA_DIR);
+void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string GNUPLOT_DATA_DIR);
+void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string GNUPLOT_DATA_DIR);
 
 // コンビネーションnCrの計算を行う
 int comb(int n, int r);
