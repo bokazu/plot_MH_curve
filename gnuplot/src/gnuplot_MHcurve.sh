@@ -7,13 +7,16 @@
 #=================================================================================================
 
 #ファイル名のリストを取得する
-file1="../output/Jg0/MHdata_param_red_11.csv"
-file2="../output/Jg0/MHdata_param_red_26.csv"
-file3="../output/Jg0/MHdata_param_red_35.csv"
-file4="../output/Jg0/MHdata_param_red_50.csv"
+J_num="Jg00"
+J_val="J_g=0.0"
+
+file1="../output/${J_num}/MHdata_param_red_11.csv"
+file2="../output/${J_num}/MHdata_param_red_26.csv"
+file3="../output/${J_num}/MHdata_param_red_35.csv"
+file4="../output/${J_num}/MHdata_param_red_50.csv"
 
 #出力ファイル名
-output_filename="./img_MH_curve/kagome_27site_Jg0.png"
+output_filename="./img_MH_curve/${J_num}/kagome_27site_${J_num}.png"
 #同一ファイル名のファイルが存在しないかを確認し、存在する場合にはファイル名を変更する
 # if [ -f $ourput_filename ]; then
 #     echo "File already exists. Please enter a new filename({filename.png}):"
@@ -22,7 +25,7 @@ output_filename="./img_MH_curve/kagome_27site_Jg0.png"
 # fi
 
 #グラフ名
-graph_name="kagome 27site J_g=0"
+graph_name="kagome 27site ${J_val}"
 
 #gnuplotスクリプトファイルを作成
 gnuplot -p << EOF
