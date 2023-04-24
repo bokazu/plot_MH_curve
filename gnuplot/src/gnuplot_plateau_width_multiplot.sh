@@ -8,14 +8,14 @@
 #=================================================================================================
 
 #入力ファイルリスト名
-
 J_numbers=(00 01 02 03 04 05 06 07 08 09 10)
 for J_number in "${J_numbers[@]}"; do
-    files="files$J_number"
-    $files=$(ls ../../output/plateau_width/Jg$J_number/*.csv)
+    # echo $(ls ../../output/plateau_width/Jg${J_number}/)
+    eval files${J_number}="($(ls -d ../../output/plateau_width/Jg${J_number}/*))"
 done
 
-echo $files00
+echo "${files00[@]}"
+echo "${files01[@]}"
 
 #出力ファイル名
 output_filename1="../img_plateau_width/kagome_27site_plateau_width_part1"
@@ -41,65 +41,81 @@ fi
 graph_name1="Kagome 27siteplateau width part1"
 graph_name2="Kagome 27siteplateau width part2" 
 
-#gnuplotスクリプトファイルを作成
-#     gnuplot -p << EOF
-#     set terminal pngcairo size 960, 960
-#     set output "${output_filename1}.png"
+gnuplotスクリプトファイルを作成
+    gnuplot -p << EOF
+    load "string.plt"
+
+
+    set terminal pngcairo size 1280, 960
+    set output "${output_filename1}.png"
+    set multiplot layout 2,3
+
+
+    set title "${graph_name1}"
+    set xlabel "J_r"
+    set ylabel "plateau width"
+    set key right top
+    set size ratio -1
+
+    itr=0
+    set size 0.3,0.52
+    set title "J_g=0.0"
+    plot for [file in "${files00[@]}"] file using 1:2 with points title "1"
+
+    set size 0.3,0.52
+    set title "J_g=0.1"
+    plot for [file in "${files01[@]}"] file using 1:2 with points title "2"
+
+    set size 0.3,0.52
+    set title "J_g=0.2"
+    plot for [file in "${files02[@]}"] file using 1:2 with points title "3"
     
-#     set multiplot layout 2,3
-#     set title "${graph_name1}"
-#     set xlabel "J_r"
-#     set ylabel "plateau width"
-#     set key outside
+    set size 0.3,0.52
+    set title "J_g=0.3"
+    plot for [file in "${files03[@]}"] file using 1:2 with points title "4"
 
-#     set title "J_g=0.0"
-#     plot for [file in "${files00}"] file using 1:2 with linespoints title file
+    set size 0.3,0.52
+    set title "J_g=0.4"
+    plot for [file in "${files04[@]}"] file using 1:2 with points title "5"
 
-#     set title "J_g=0.1"
-#     plot for [file in "${files01}"] file using 1:2 with linespoints title file
+    set size 0.3,0.52
+    set title "J_g=0.5"
+    plot for [file in "${files05[@]}"] file using 1:2 with points title "5"
 
-#     set title "J_g=0.2"
-#     plot for [file in "${files02}"] file using 1:2 with linespoints title file
+ 
+    unset multiplot
+    set term qt 
+
+    set terminal pngcairo size 1280, 960
+    set output "${output_filename2}.png"
+    set multiplot layout 2,3
+    set title "${graph_name2}"
+    set xlabel "J_r"
+    set ylabel "plateau width"
+    set key right top
+    set size ratio -1
+
+    set size 0.3,0.52
+    set title "J_g=0.6"
+    plot for [file in "${files06[@]}"] file using 1:2 with points title "1"
+
+    set size 0.3,0.52
+    set title "J_g=0.7"
+    plot for [file in "${files07[@]}"] file using 1:2 with points title "2"
+
+    set size 0.3,0.52
+    set title "J_g=0.8"
+    plot for [file in "${files08[@]}"] file using 1:2 with points title "3"
     
-#     set title "J_g=0.3"
-#     plot for [file in "${files03}"] file using 1:2 with linespoints title file
+    set size 0.3,0.52
+    set title "J_g=0.9"
+    plot for [file in "${files09[@]}"] file using 1:2 with points title "4"
 
-#     set title "J_g=0.4"
-#     plot for [file in "${files04}"] file using 1:2 with linespoints title file
-
-#     set title "J_g=0.5"
-#     plot for [file in "${files05}"] file using 1:2 with linespoints title file
-
-
-#     unset multiplot
-#     set term qt 
-
-#     set terminal pngcairo size 960, 960
-#     set output "${output_filename2}.png"
-
-
-#     set multiplot layout 2,3
-#     set title "${graph_name2}"
-#     set xlabel "J_r"
-#     set ylabel "plateau width"
-#     set key outside
-
-#     set title "J_g=0.6"
-#     plot for [file in "${files06}"] file using 1:2 with linespoints title file
-
-#     set title "J_g=0.7"
-#     plot for [file in "${files07}"] file using 1:2 with linespoints title file
-
-#     set title "J_g=0.8"
-#     plot for [file in "${files08}"] file using 1:2 with linespoints title file
-    
-#     set title "J_g=0.9"
-#     plot for [file in "${files09}"] file using 1:2 with linespoints title file
-
-#     set title "J_g=1.0"
-#     plot for [file in "${files10}"] file using 1:2 with linespoints title file
-#     unset multiplot
-#     set term qt
+    set size 0.3,0.52
+    set title "J_g=1.0"
+    plot for [file in "${files10[@]}"] file using 1:2 with points title "5"
+    unset multiplot
+    set term qt
 
    
-# EOF
+EOF
