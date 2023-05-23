@@ -3770,7 +3770,13 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
     tri_diag_evec = new double[tri_mat_dim * tri_mat_dim];
     MP_schedule_vec_init(tri_mat_dim * tri_mat_dim, tri_diag_evec);
   }
-
+  else
+  {
+    tri_diag_evec = new double[2];
+    MP_schedule_vec_init(2, tri_diag_evec);
+  }
+  // tri_diag_evec = new double[tri_mat_dim * tri_mat_dim];
+  // MP_schedule_vec_init(tri_mat_dim * tri_mat_dim, tri_diag_evec);
   ofs << setw(5) << left << "ls"
       << ","
       << setw(15) << "iso"
@@ -3923,6 +3929,7 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
             info =
                 LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
                               sub_diag, tri_diag_evec, ls + 1);
+
             end_diagonalize = omp_get_wtime();
             time_diagonalize = end_diagonalize - start_diagonalize;
           }
@@ -3987,6 +3994,10 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
             info =
                 LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
                               sub_diag, tri_diag_evec, ls + 1);
+
+            // info =
+            //     LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', tri_mat_dim, diag,
+            //                   sub_diag, tri_diag_evec, tri_mat_dim);
             end_diagonalize = omp_get_wtime();
             time_diagonalize = end_diagonalize - start_diagonalize;
           }
@@ -4225,8 +4236,8 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
   delete[] beta;
   delete[] diag;
   delete[] sub_diag;
-  if (c == 'V')
-    delete[] tri_diag_evec;
+
+  delete[] tri_diag_evec;
   for (int No = 0; No < pair_num; No++)
   {
     for (int i = 0; i < tot_Sz[No].bm_A_size; i++)
@@ -4607,8 +4618,7 @@ double Subsystem_Sz::MP_mm_ddot(const int row_dim, const int col_dim, double **V
 {
   int j;
   double val = 0.;
-#pragma omp parallel for private(j) reduction(+ \
-                                              : val)
+#pragma omp parallel for private(j) reduction(+ : val)
   for (int i = 0; i < row_dim; i++)
   {
     for (j = 0; j < col_dim; j++)
@@ -4623,8 +4633,7 @@ double Subsystem_Sz::MP_schedule_mm_ddot(const int row_dim, const int col_dim, d
 {
   int j;
   double val = 0.;
-#pragma omp parallel for private(j) reduction(+ \
-                                              : val) schedule(runtime)
+#pragma omp parallel for private(j) reduction(+ : val) schedule(runtime)
   for (int i = 0; i < row_dim; i++)
   {
     for (j = 0; j < col_dim; j++)
@@ -4717,8 +4726,7 @@ double Subsystem_Sz::MP_mm_dnrm2(const int row_dim, const int col_dim, double **
 {
   int j;
   double val = 0.;
-#pragma omp parallel for private(j) reduction(+ \
-                                              : val)
+#pragma omp parallel for private(j) reduction(+ : val)
   for (int i = 0; i < row_dim; i++)
   {
     for (j = 0; j < col_dim; j++)
@@ -4733,8 +4741,7 @@ double Subsystem_Sz::MP_schedule_mm_dnrm2(const int row_dim, const int col_dim, 
 {
   int j;
   double val = 0.;
-#pragma omp parallel for private(j) reduction(+ \
-                                              : val) schedule(runtime)
+#pragma omp parallel for private(j) reduction(+ : val) schedule(runtime)
   for (int i = 0; i < row_dim; i++)
   {
     for (j = 0; j < col_dim; j++)
@@ -5183,6 +5190,7 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
 
   for (int up = min_up_spin; up < max_up_spin + 1; up++)
   {
+    double start_subsystem = omp_get_wtime();
     Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, up); // Subsystem_Szオブジェクトのupスピン本数の再設定
 
     // upスピンの本数が上記の場合における部分空間とHamiltonian行列の用意
@@ -5191,7 +5199,10 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
     H.sub_hamiltonian();
 
     H.MP_schedule_sub_lanczos(1000); // lanczos法による固有値計算
+    double end_subsystem = omp_get_wtime();
 
+    cout << "run_time = " << end_subsystem - start_subsystem << endl;
+    cout << H << endl;
     // 基底状態での固有エネルギーと磁化の値の格納
     M.push_back(H.mag);
     e_min.push_back(H.eigen_value);
@@ -5301,11 +5312,12 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
 }
 
 // spin-spin相関の計算<Ψ|S_i^zS_j^z|Ψ>
-void Subsystem_Sz::clac_spin_rel(const int site_num, std::string dir_output)
+void Subsystem_Sz::clac_szz_rel(const int site_num, std::string dir_output)
 {
   double rel_ij; // サイトi,jの相関係数
   bool is_up_spin_i, is_up_spin_j;
   int sign; // S_i^zS_j^z|Ψ>の符号を代入する sign = ±1
+  double evec_val;
   ofstream ofs(dir_output);
 
   // siteについてのloop(はじめにどのサイト同士の相関係数を計算するかを指定する)
@@ -5314,8 +5326,12 @@ void Subsystem_Sz::clac_spin_rel(const int site_num, std::string dir_output)
       << ", "
       << "j∈A"
       << ","
-      << setw(18) << "rel_ij\n";
-  ofs << "---------------------------------------------\n";
+      << setw(18) << "rel_ij"
+      << ","
+      << "rel_ij x 5.0"
+      << "\n ";
+  ofs
+      << "---------------------------------------------\n";
   for (int i = 0; i < tot_site_A; i++)
   {
     for (int j = i; j < tot_site_A; j++)
@@ -5342,12 +5358,12 @@ void Subsystem_Sz::clac_spin_rel(const int site_num, std::string dir_output)
               sign = 1;
             else
               sign = -1;
-
-            rel_ij += sign * 0.25 * tot_Sz[No].Eig.eigen_mat[n][m];
+            evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+            rel_ij += sign * 0.25 * evec_val * evec_val;
           }
         }
       }
-      ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << endl;
+      ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
     }
   }
   ofs << "---------------------------------------------\n";
@@ -5356,7 +5372,10 @@ void Subsystem_Sz::clac_spin_rel(const int site_num, std::string dir_output)
       << ", "
       << "j∈B"
       << ","
-      << setw(18) << "rel_ij\n";
+      << setw(18) << "rel_ij"
+      << ","
+      << "rel_ij x 5.0"
+      << "\n";
   ofs << "---------------------------------------------\n";
   for (int i = 0; i < tot_site_B; i++)
   {
@@ -5384,11 +5403,12 @@ void Subsystem_Sz::clac_spin_rel(const int site_num, std::string dir_output)
             else
               sign = -1;
 
-            rel_ij += sign * 0.25 * tot_Sz[No].Eig.eigen_mat[n][m];
+            evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+            rel_ij += sign * 0.25 * evec_val * evec_val;
           }
         }
       }
-      ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << endl;
+      ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
     }
   }
   //[3]2サイトがそれぞれ部分系A,Bに属する場合
@@ -5426,12 +5446,222 @@ void Subsystem_Sz::clac_spin_rel(const int site_num, std::string dir_output)
               sign = 1;
             else
               sign = -1;
+            evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+            rel_ij += sign * 0.25 * evec_val * evec_val;
+          }
+        }
+      }
+      ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+    }
+  }
+  ofs.close();
+};
 
-            rel_ij += sign * 0.25 * tot_Sz[No].Eig.eigen_mat[n][m];
+void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
+{
+  double rel_ij; // サイトi,jの相関係数
+  bool is_up_spin_i, is_up_spin_j;
+  double evec_val;
+  ofstream ofs(dir_output);
+
+  //[1]i,jがともに部分系Aに属するサイトの場合
+  ofs << setw(3) << "i∈A"
+      << ", "
+      << "j∈A"
+      << ","
+      << setw(18) << "rel_ij"
+      << ","
+      << "rel_ij x 5.0"
+      << "\n ";
+  ofs
+      << "---------------------------------------------\n";
+  for (int i = 0; i < tot_site_A; i++)
+  {
+    for (int j = 0; j < tot_site_A; j++) // j=0 startにすることでS_i^+Sj-とS_i^-とS_j^+を一度に計算することができる
+    {
+      rel_ij = 0.;
+      for (int No = 0; No < pair_num; No++)
+      {
+        // 状態についてのloop(|スピン状態> = |n>|m>)
+        for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
+        {
+          for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
+          {
+            // 状態の用意
+            // スピン演算子は部分系AのサイトについてのものなのでbitはAのものだけを用意すれば良い
+            int state_num_of_A = tot_Sz[No].bm_A[n];
+            boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
+
+            // i,j番目のスピンの向きを確認
+            is_up_spin_i = ket_A.test(i); // bitが1(up)ならtrue、そうでないならfalse
+            is_up_spin_j = ket_A.test(j);
+
+            // i番目のスピンがdownかつj番目のスピンがupの場合
+            if (is_up_spin_i == false && is_up_spin_j == true)
+            {
+              boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
+              ket_A1.flip(i);
+              ket_A1.flip(j);
+
+              int n_trans = (int)(ket_A1.to_ulong()); //|n>の遷移先を調べる
+              int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
+              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
+            }
+
+            // i番目のスピンがupかつj番目のスピンがdownの場合
+            if (is_up_spin_i == true && is_up_spin_j == false)
+            {
+              boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
+              ket_A1.flip(i);
+              ket_A1.flip(j);
+
+              int n_trans = (int)(ket_A1.to_ulong()); //|n>の遷移先を調べる
+              int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
+              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
+            }
           }
         }
       }
       ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << endl;
+    }
+  }
+  ofs << "---------------------------------------------\n";
+
+  //[2]i,jがともに部分系Bに属するサイトの場合
+  ofs << setw(3) << "i∈B"
+      << ", "
+      << "j∈B"
+      << ","
+      << setw(18) << "rel_ij"
+      << ","
+      << "rel_ij x 5.0"
+      << "\n";
+  ofs << "---------------------------------------------\n";
+  for (int i = 0; i < tot_site_B; i++)
+  {
+    for (int j = 0; j < tot_site_B; j++)
+    {
+      rel_ij = 0.;
+      for (int No = 0; No < pair_num; No++)
+      {
+        // 状態についてのloop
+        for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
+        {
+          for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
+          {
+            // 状態の用意
+            // スピン演算子は部分系BのサイトについてのものなのでbitはBのものだけを用意すれば良い
+            int state_num_of_B = tot_Sz[No].bm_B[m];
+            boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
+
+            // i,j番目のスピンの向きを確認
+            is_up_spin_i = ket_B.test(i);
+            is_up_spin_j = ket_B.test(j);
+
+            // i番目のスピンがdownかつj番目のスピンがupの場合
+            if (is_up_spin_i == false && is_up_spin_j == true)
+            {
+              boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
+              ket_B1.flip(i);
+              ket_B1.flip(j);
+
+              int m_trans = (int)(ket_B1.to_ulong()); //|m>の遷移先を調べる
+              int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
+              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
+            }
+
+            // i番目のスピンがupかつj番目のスピンがdownの場合
+            if (is_up_spin_i == true && is_up_spin_j == false)
+            {
+              boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
+              ket_B1.flip(i);
+              ket_B1.flip(j);
+
+              int m_trans = (int)(ket_B1.to_ulong()); //|m>の遷移先を調べる
+              int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
+              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
+            }
+          }
+        }
+      }
+      ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+    }
+  }
+
+  //[3]2サイトがそれぞれ部分系A,Bに属する場合
+  ofs << "---------------------------------------------\n";
+  ofs << setw(3) << "i∈A"
+      << ", "
+      << "j∈B"
+      << ","
+      << setw(18) << "rel_ij\n";
+  ofs << "---------------------------------------------\n";
+  for (int i = 0; i < tot_site_A; i++)
+  {
+    for (int j = 0; j < tot_site_B; j++)
+    {
+      rel_ij = 0.;
+      // 部分空間についてのloop
+      for (int No = 0; No < pair_num; No++)
+      {
+        // 状態についてのloop
+        for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
+        {
+          for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
+          {
+            // 状態の用意
+            int state_num_of_A = tot_Sz[No].bm_A[n];
+            int state_num_of_B = tot_Sz[No].bm_B[m];
+            boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
+            boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
+
+            // i,j番目のスピンの向きを確認
+            is_up_spin_i = ket_A.test(i);
+            is_up_spin_j = ket_B.test(j);
+
+            // i,j番目のスピンがdownの場合
+            if (No > 0)
+            {
+              if (is_up_spin_i == false && is_up_spin_j == true)
+              {
+                boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
+                boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
+                ket_A1.flip(i);
+                ket_B1.flip(j);
+
+                int n_trans = (int)(ket_A1.to_ulong());
+                int m_trans = (int)(ket_B1.to_ulong());
+
+                int bn_ctr = tot_Sz[No - 1].gbm_A[n_trans];
+                int bm_ctr = tot_Sz[No - 1].gbm_B[m_trans];
+
+                rel_ij += 0.25 * tot_Sz[No - 1].Eig.eigen_mat[bn_ctr][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
+              }
+            }
+
+            if (No < pair_num - 1)
+            {
+              if (is_up_spin_i == true && is_up_spin_j == false)
+              {
+
+                boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
+                boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
+                ket_A1.flip(i);
+                ket_B1.flip(j);
+
+                int n_trans = (int)(ket_A1.to_ulong());
+                int m_trans = (int)(ket_B1.to_ulong());
+
+                int bn_ctr = tot_Sz[No + 1].gbm_A[n_trans];
+                int bm_ctr = tot_Sz[No + 1].gbm_B[m_trans];
+
+                rel_ij += 0.25 * tot_Sz[No + 1].Eig.eigen_mat[bn_ctr][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
+              }
+            }
+          }
+        }
+      }
+      ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
     }
   }
   ofs.close();

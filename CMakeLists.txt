@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.20.5)
 project(Subsystem_Sz LANGUAGES CXX)
 add_subdirectory(./Subsystem_Sz)
 # find_package(IntelDPCPP REQUIRED)
-find_package(Boost REQUIRED)
-find_package(IntelSYCL REQUIRED)
+# find_package(Boost REQUIRED)
+# find_package(IntelSYCL REQUIRED)
 
 add_executable(main_app 
                 main.cpp)

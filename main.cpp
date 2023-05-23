@@ -67,5 +67,16 @@ int main(int argc, char *argv[])
     // cout << H << endl;
 
     /*--------磁化曲線をplotするためのdataを得る場合にはこちらを使用する-------*/
-    MP_schedule_plot_MHcurve(sys_num, sys_site_A, sys_site_B, max_up_spin, min_up_spin, J_red, J_green, J_blue, file, dir_output);
+    // MP_schedule_plot_MHcurve(sys_num, sys_site_A, sys_site_B, max_up_spin, min_up_spin, J_red, J_green, J_blue, file, dir_output);
+
+    /*--------spin-spin相関を調べる-------*/
+    Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, min_up_spin); // Subsystem_Szオブジェクトのupスピン本数の再設定
+    H.sub_space_check();
+    H.set_system_info();
+    H.sub_hamiltonian();
+    H.MP_schedule_sub_lanczos(1000, 'V');
+
+    cout << H << endl;
+    int total_site_num = H.tot_site_A + H.tot_site_B;
+    H.calc_sxx_rel(total_site_num, dir_output);
 }

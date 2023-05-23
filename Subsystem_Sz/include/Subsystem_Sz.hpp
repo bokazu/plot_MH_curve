@@ -162,8 +162,10 @@ public:
     void MP_schedule_mm_sdz_V1();
     void MP_schedule_mm_init(const int row_dim, const int col_dim, double **V);
 
-    // spin-spin相関の計算<Ψ|S_i^zS_j^z|Ψ>
-    void clac_spin_rel(const int site_num, std::string dir_output);
+    // spin-spin相関の計算
+    void clac_szz_rel(const int site_num, std::string dir_output); // <Ψ|S_i^zS_j^z|Ψ>
+    void calc_sxx_rel(const int site_num, std::string dir_output); // <Ψ|S_i^+S_j^-|Ψ>
+    void calc_syy_rel(const int site_num, std::string dir_output); // <Ψ|S_i^-S_j^+|Ψ>
 
     // 特定のplateauについて相互作用のパラメータを変化させたときのwidthの変化を調べる
     // M-H curveについてのデータファイルが揃っていることが前提
