@@ -99,7 +99,7 @@ public:
     void MP_sub_lanczos(const int tri_mat_dim, char c = 'N', char info_ls = 'n');
     double MP_sub_lanczos_timetest(const int tri_mat_dim, std::string output_filename, char c = 'N', char info_ls = 'n'); // lanczos法で収束に要した時間を返す
     void MP_schedule_sub_lanczos(const int tri_mat_dim, char c = 'N', char info_ls = 'n');
-    double MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::string output_filename, char c = 'N', char info_ls = 'n'); // lanczos法で収束に要した時間を変えす
+    double MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::string dir_output_time, char c = 'N', char info_ls = 'n'); // lanczos法で収束に要した時間を変えす
 
     /*------------------------mm系関数------------------------*/
     void iso_mmprod(const int No, double **V0, double **V1);                                     // Iso systemの行列-行列積
@@ -163,9 +163,8 @@ public:
     void MP_schedule_mm_init(const int row_dim, const int col_dim, double **V);
 
     // spin-spin相関の計算
-    void clac_szz_rel(const int site_num, std::string dir_output); // <Ψ|S_i^zS_j^z|Ψ>
-    void calc_sxx_rel(const int site_num, std::string dir_output); // <Ψ|S_i^+S_j^-|Ψ>
-    void calc_syy_rel(const int site_num, std::string dir_output); // <Ψ|S_i^-S_j^+|Ψ>
+    void calc_szz_rel(const int site_num, std::string dir_output); // <Ψ|S_i^zS_j^z|Ψ>
+    void calc_sxx_rel(const int site_num, std::string dir_output); // <Ψ|S_i^xS_j^x|Ψ>
 
     // 特定のplateauについて相互作用のパラメータを変化させたときのwidthの変化を調べる
     // M-H curveについてのデータファイルが揃っていることが前提
@@ -205,9 +204,11 @@ void MP_schedule_vec_init(int dim, T *vec)
     }
 }
 
-void plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string GNUPLOT_DATA_DIR);
-void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string GNUPLOT_DATA_DIR);
-void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string GNUPLOT_DATA_DIR);
+// ファイルからデータを読み込み磁化曲線のplotに必要なデータを計算する
+void MP_schedule_plot_MHcurve(double J_red, double J_green, double J_blue, std::string dir_input, std::string dir_output);
+
+// ある範囲の磁化でのエネルギー固有値を計算する
+void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_szz_rel, char c = 'N');
 
 // コンビネーションnCrの計算を行う
 int comb(int n, int r);

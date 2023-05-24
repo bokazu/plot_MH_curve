@@ -12,19 +12,14 @@ var7="" #Y-kapellasiteの模型におけるbondの相互作用J_red
 var8="" #Y-kapellasiteの模型におけるbondの相互作用J_green
 var9="" #Y-kapellasiteの模型におけるbondの相互作用J_blue
 
-# ===================jsetファイルを用意する===========================
-
-
+LATTICE="chain"
+SITENUM="12"
 
 # 計算を行いたいjsetファイルを格納しているディレクトリのリストを取得する
-# from_dir="./sample_lists/kagome/27site"
-from_dir="./sample_lists/chain/12site"
+from_dir="./sample_lists/${LATTICE}/${SITENUM}site"
 to_dir="./settings"
-
 dir_list=("$from_dir"/*/)
 
-J_green=1
-# J_green_inc_steps=0.1
 
 cmake -S . -DCMAKE_CXX_COMPILER=icpx -B build
 cmake --build build
@@ -40,11 +35,18 @@ for dir in "${dir_list[@]}"; do
         done
 
         param_dir=$(basename "$dir")
-        dir_output="./output/spin_rel/12site_ground_state_sxx.csv"
-    
+        mkdir ./output/${LATTICE}/${SITENUM}site/$param_dir
+        mkdir ./output/${LATTICE}/${SITENUM}site/$param_dir/sxx_rel
+        mkdir ./output/${LATTICE}/${SITENUM}site/$param_dir/szz_rel
+        mkdir ./output/${LATTICE}/${SITENUM}site/$param_dir/time
+        
+        dir_output_sxx_rel="./output/${LATTICE}/${SITENUM}site/$param_dir/sxx_rel/spin_sxx_rel"
+        dir_output_szz_rel="./output/${LATTICE}/${SITENUM}site/$param_dir/szz_rel/spin_szz_rel"
+	dir_output_eval="./output/${LATTICE}/${SITENUM}site/$param_dir/eigen_val.csv"
+	dir_output_time="./output/${LATTICE}/${SITENUM}site/$param_dir/time/time_info"
 
         #===================コードを実行する==============================           
-        ./build/main_app "$var2" "$var3" "$var4" "$var5" "$var6" "$var7" "$var8" "$var9" "$dir_output"
+        ./build/main_app "$var2" "$var3" "$var4" "$var5" "$var6" "$var7" "$var8" "$var9" "$dir_output_eval" "$dir_output_time" "$dir_output_sxx_rel" "$dir_output_szz_rel"
 
         #===================jsetファイルをto_dirから削除する==============
         echo "Deleting files in $to_dir"

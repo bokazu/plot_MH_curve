@@ -22,10 +22,10 @@ int main(int argc, char *argv[])
     vector<string> file = {"./settings/jset0.txt", "./settings/jset1.txt", "./settings/jset2.txt"};
     int sys_num, sys_site_A, sys_site_B, min_up_spin, max_up_spin;
     double J_red, J_green, J_blue;
-    std::string dir_output;
+    std::string dir_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel;
 
     cout << "argc = " << argc << endl;
-    if (argc == 10)
+    if (argc == 13)
     {
         sys_num = stoi(argv[1]);
         sys_site_A = stoi(argv[2]);
@@ -35,9 +35,12 @@ int main(int argc, char *argv[])
         J_red = atof(argv[6]);
         J_green = atof(argv[7]);
         J_blue = atof(argv[8]);
-        dir_output = argv[9];
+        dir_output_eval = argv[9];
+        dir_output_time = argv[10];
+        dir_output_spin_sxx_rel = argv[11];
+        dir_output_spin_szz_rel = argv[12];
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 13; i++)
         {
             cout << "argv[" << i << "] = " << argv[i] << endl;
         }
@@ -50,33 +53,5 @@ int main(int argc, char *argv[])
             cout << "argv[" << i << "] = " << argv[i] << endl;
         }
     }
-
-    /*--------lanczos法の各処理に要する時間を調べる場合にはこちらを使用する-------*/
-    // double start = omp_get_wtime();
-    // Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, min_up_spin); // Subsystem_Szオブジェクトのupスピン本数の再設定
-
-    // // upスピンの本数が上記の場合における部分空間とHamiltonian行列の用意
-    // H.sub_space_check();
-    // H.set_system_info();
-    // H.sub_hamiltonian();
-
-    // H.MP_sub_lanczos_timetest(1000, dir_output); // lanczos法による固有値計算
-    // double end = omp_get_wtime();
-
-    // cout << "totla time[sec] : " << end - start << endl;
-    // cout << H << endl;
-
-    /*--------磁化曲線をplotするためのdataを得る場合にはこちらを使用する-------*/
-    // MP_schedule_plot_MHcurve(sys_num, sys_site_A, sys_site_B, max_up_spin, min_up_spin, J_red, J_green, J_blue, file, dir_output);
-
-    /*--------spin-spin相関を調べる-------*/
-    Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, min_up_spin); // Subsystem_Szオブジェクトのupスピン本数の再設定
-    H.sub_space_check();
-    H.set_system_info();
-    H.sub_hamiltonian();
-    H.MP_schedule_sub_lanczos(1000, 'V');
-
-    cout << H << endl;
-    int total_site_num = H.tot_site_A + H.tot_site_B;
-    H.calc_sxx_rel(total_site_num, dir_output);
+    ranged_calc_gs_energy(sys_num, sys_site_A, sys_site_B, max_up_spin, min_up_spin, J_red, J_green, J_blue, file, dir_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel, 'V');
 }

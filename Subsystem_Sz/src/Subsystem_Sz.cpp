@@ -3612,7 +3612,7 @@ double Subsystem_Sz::MP_sub_lanczos_timetest(const int tri_mat_dim, std::string 
 };
 
 // lanczos法 OpenMP with schedule利用versionの各関数の処理に要する時間をテストする
-double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::string output_filename, char c, char info_ls)
+double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::string dir_output_time, char c, char info_ls)
 {
   double start_lanczos = omp_get_wtime();
 
@@ -3622,7 +3622,7 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
   bool err_checker = true;
 
   // 各関数の処理に要する時間を各stepごとに書き出すファイルの設定
-  ofstream ofs(output_filename);
+  ofstream ofs(dir_output_time);
 
   double start_iso, end_iso, time_isoprod;                     // iso_mmprodに要する時間[sec]
   double start_int, end_int, time_intprod;                     // int_mmprodに要する時間[sec]
@@ -4914,138 +4914,99 @@ void Subsystem_Sz::MP_schedule_calc_beta_oddstep(const int tri_mat_dim, const in
   }
 };
 
-/*磁化曲線のplotを行う*/
-void plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, vector<string> &file, string GNUPLOT_DATA_DIR)
+void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_szz_rel, char c)
 {
-  vector<double> M;     // 磁化の情報を格納するための配列
-  vector<double> e_min; // 各部分空間における基底状態のエネルギー固有値を代入するための配列
-
-  vector<double> plot_h; // 交点のh座標を格納する(横軸)
-  vector<double> plot_m; // 交点のM座標を格納する(縦軸)
-
-  double abs_of_dif_Jr_Jg = abs(J_red - J_green);  //|J_red - J_green|の値
-  double abs_of_dif_Jr_Jb = abs(J_red - J_blue);   //|J_red - J_blue|の値
-  double abs_of_dif_Jg_Jb = abs(J_green - J_blue); //|J_green - J_blue|の値
-  vector<double> plateau_width;                    // h_{i+1} - h_iの値を格納する
-
-  for (int up = min_up_spin; up < max_up_spin + 1; up++)
+  ofstream eval_data(dir_output_energy);
+  vector<double> Magnetization; // 磁化の値を格納するための配列
+  vector<double> eigen_values;  // 各部分空間における基底状態のエネルギー固有値を代入するための配列
+  if (c == 'N')
   {
-    Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, up); // Subsystem_Szオブジェクトのupスピン本数の再設定
-
-    // upスピンの本数が上記の場合における部分空間とHamiltonian行列の用意
-    H.sub_space_check();
-    H.set_system_info();
-    H.sub_hamiltonian();
-
-    H.sub_lanczos(500); // lanczos法による固有値計算
-
-    // 基底状態での固有エネルギーと磁化の値の格納
-    M.push_back(H.mag);
-    e_min.push_back(H.eigen_value);
-  }
-
-  // 磁場の規格化を行う
-  auto max_index = distance(M.begin(), max_element(M.begin(), M.end())); // min_indexの方はsize_t
-  for (int i = 0; i < M.size(); i++)
-  {
-    M[i] /= M[max_index];
-  }
-
-  plot_h.push_back(0);
-  plot_m.push_back(M[0]);
-
-  // E-hグラフにおける交点を求める処理を以下で行う
-  for (int i = 0; i < M.size() - 1; i++)
-  {
-    vector<double> mi_intersec(M.size(), 20.0); // M_iとM_i+1...との交点のx座標を格納した配列
-
-    for (int k = i + 1; k < M.size(); k++) // M_iとM_i+1の交点の座標を計算して記録
+    for (int up = min_up_spin; up <= max_up_spin; up++)
     {
-      mi_intersec[k - (i + 1)] = double((e_min[k] - e_min[i]) / (k - i));
+      string dir_time = dir_output_time + to_string(up) + ".csv";
+      double start_subsystem = omp_get_wtime();
+      Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, up);
+      H.sub_space_check();
+      H.set_system_info();
+      H.sub_hamiltonian();
+      H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time);
+      double end_subsystem = omp_get_wtime();
+      cout << H << endl;
+      cout << "run time = " << end_subsystem - start_subsystem << "[sec]" << endl;
     }
-
-    // 列挙した交点のうち、最もx座標の値が小さいものを選択して記録する
-    auto min_index = distance(mi_intersec.begin(), min_element(mi_intersec.begin(), mi_intersec.end())); // min_indexの方はsize_t
-    // M[i]とM[i+1]のhの交点座標 > M[i]とM[i+2]のhの交点座標の場合にM[i+1]とM[i+2],M[i+3]...のhの交点を調べるのはskipする
-    int skip_itr = int(min_index) + 1;
-
-    // skipされるぶんについても値を出力する
-    for (int l = 0; l < skip_itr - 1; l++)
+    // 固有値のみを計算する場合はspin相関を計算しない
+  }
+  else if (c == 'V')
+  {
+    for (int up = min_up_spin; up <= max_up_spin; up++)
     {
-      plot_h.push_back(mi_intersec[min_index]);
-      plot_m.push_back(M[i + l + 1]);
+      string dir_time = dir_output_time + to_string(up) + ".csv";
+      double start_subsystem = omp_get_wtime();
+      Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, up);
+      H.sub_space_check();
+      H.set_system_info();
+      H.sub_hamiltonian();
+      H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time, 'V');
+      double end_subsystem = omp_get_wtime();
+      double subsystem_time = end_subsystem - start_subsystem;
+      cout << H << endl;
+      cout << "run time of calc energy = " << subsystem_time << "[sec]" << endl;
+
+      Magnetization.push_back(H.mag);
+      eigen_values.push_back(H.eigen_value);
+
+      int total_site_num = H.tot_site_A + H.tot_site_B;
+      // 磁化空間ごとにspin相関の計算結果を出力するファイルを用意する
+      string dir_sxx = dir_output_spin_sxx_rel + to_string(up) + ".csv";
+      string dir_szz = dir_output_spin_szz_rel + to_string(up) + ".csv";
+
+      double start_calc_sxx_rel = omp_get_wtime();
+      H.calc_sxx_rel(total_site_num, dir_sxx);
+      double end_calc_sxx_rel = omp_get_wtime();
+      double calc_sxx_rel_time = end_calc_sxx_rel - start_calc_sxx_rel;
+      cout << "run time of calc sxx rel = " << calc_sxx_rel_time << "[sec]"
+           << "("
+           << calc_sxx_rel_time * 100 / subsystem_time << "%)" << endl;
+
+      double start_calc_szz_rel = omp_get_wtime();
+      H.calc_szz_rel(total_site_num, dir_szz);
+      double end_calc_szz_rel = omp_get_wtime();
+      double calc_szz_rel_time = end_calc_szz_rel - start_calc_szz_rel;
+      cout << "run time of calc szz rel = " << calc_szz_rel_time << "[sec]"
+           << "(" << calc_szz_rel_time * 100 / subsystem_time << "%)" << endl;
     }
-
-    plot_h.push_back(mi_intersec[min_index]);
-    plot_m.push_back(M[i + 1]);
-    // 上記に該当する磁化のindexを取得する
-    i += int(min_index); // M_iとM_{i+α}の交点が最小だった場合には、M_{i+α-1}に着目したloopはskipする。
   }
-
-  //====================== プラトー幅を調べる ===============================
-  double width;
-  for (int i = 0; i < M.size() - 2; i++)
+  // 磁場の規格化
+  auto max_index = distance(Magnetization.begin(), max_element(Magnetization.begin(), Magnetization.end()));
+  for (int i = 0; i < Magnetization.size(); i++)
   {
-    width = plot_h[i + 1] - plot_h[i];
-    plateau_width.push_back(width);
+    Magnetization[i] /= Magnetization[max_index];
   }
 
-  plateau_width.push_back(0);
-
-  // 交点の情報の表示
-  cout
-      << "================================================\n";
-  cout << setw(5) << "h"
-       << "  " << setw(16) << "M"
-       << " "
-       << "J_{red}"
-       << " "
-       << "J_{green}"
-       << " "
-       << "J_{blue}"
-       << " "
-       << "plateau width" << endl;
-  cout << "------------------------------------------------\n";
-  for (int i = 0; i < plot_h.size(); i++)
+  // 結果の出力
+  cout << "==========================================================================================\n";
+  cout << "Magnetization"
+       << "  "
+       << setw(16)
+       << "Eigen value" << endl;
+  cout << "------------------------------------------------------------------------------------------\n";
+  for (int i = 0; i < Magnetization.size(); i++)
   {
-    cout << left << setw(5) << plot_h[i]
-         << " " << setw(15) << plot_m[i]
-         << " " << J_red
-         << " " << J_green
-         << " " << J_blue
-         << " " << plateau_width[i] << endl;
+    cout << setprecision(15) << Magnetization[i]
+         << setprecision(15) << eigen_values[i] << endl;
   }
-  cout << "================================================\n";
+  cout << "===========================================================================================\n";
 
-  // 交点の情報をファイルへ書き出す
-
-  int site_num = sys_site_A + sys_site_B;
-  ofstream plateau_data(GNUPLOT_DATA_DIR);
-  for (int i = 0; i < plot_h.size(); i++)
+  for (int i = 0; i < Magnetization.size(); i++)
   {
-    plateau_data << left << plot_h[i]
-                 << " " << setw(15) << plot_m[i]
-                 << " " << J_red
-                 << " " << J_green
-                 << " " << J_blue
-                 << " " << plateau_width[i] << endl;
+    eval_data << setprecision(15) << Magnetization[i] << " ,"
+              << setprecision(15) << eigen_values[i] << endl;
   }
-
-  plateau_data.close();
-  // FILE *gnuplot = popen("gnuplot -persist", "w");
-  // fprintf(gnuplot, "set key left top\n");
-  // fprintf(gnuplot, "set xrange[0:%f]\n", plot_h[plot_h.size() - 1] + 0.5);
-  // fprintf(gnuplot, "plot \"/home/kazu/Documents/numcal/My_Research_Code/class_Subsystem_Sz/plateau/kagome_18site_uniform/data.txt\" using 1:2 with steps title \"18site\"\n");
-  // fprintf(gnuplot, "set title \"kagome lattice 18site uniform\"\n");
-  // fprintf(gnuplot, "set term png\n");
-  // fprintf(gnuplot, "set output \"/home/kazu/Documents/numcal/My_Research_Code/class_Subsystem_Sz/plateau/kagome_18site_uniform/kagome_18site_uniform_plateau.png\";replot\n");
-  // fprintf(gnuplot, "set term qt\n");
-  // fflush(gnuplot);
-  // pclose(gnuplot);
+  eval_data.close();
 }
 
 /*磁化曲線のplotを行う*/
-void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, vector<string> &file, string GNUPLOT_DATA_DIR)
+void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, string dir_input, string dir_output)
 {
   vector<double> M;     // 磁化の情報を格納するための配列
   vector<double> e_min; // 各部分空間における基底状態のエネルギー固有値を代入するための配列
@@ -5053,167 +5014,25 @@ void MP_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spi
   vector<double> plot_h; // 交点のh座標を格納する(横軸)
   vector<double> plot_m; // 交点のM座標を格納する(縦軸)
 
-  double abs_of_dif_Jr_Jg = abs(J_red - J_green);  //|J_red - J_green|の値
-  double abs_of_dif_Jr_Jb = abs(J_red - J_blue);   //|J_red - J_blue|の値
-  double abs_of_dif_Jg_Jb = abs(J_green - J_blue); //|J_green - J_blue|の値
-  vector<double> plateau_width;                    // h_{i+1} - h_iの値を格納する
+  vector<double> plateau_width; // h_{i+1} - h_iの値を格納する
 
-  for (int up = min_up_spin; up < max_up_spin + 1; up++)
+  // ファイルから磁化と対応するエネルギー固有値の情報を読み取る
+  ifstream input(dir_input);
+  string str_tmp;
+  double mag_tmp, energy_tmp;
+  int line = 0;
+
+  while (getline(input, str_tmp))
   {
-    Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, up); // Subsystem_Szオブジェクトのupスピン本数の再設定
-
-    // upスピンの本数が上記の場合における部分空間とHamiltonian行列の用意
-    H.sub_space_check();
-    H.set_system_info();
-    H.sub_hamiltonian();
-
-    H.MP_sub_lanczos(1000); // lanczos法による固有値計算
-
-    // 基底状態での固有エネルギーと磁化の値の格納
-    M.push_back(H.mag);
-    e_min.push_back(H.eigen_value);
+    stringstream ss;
+    ss << str_tmp;
+    ss >> mag_tmp >> energy_tmp;
+    M[line] = mag_tmp;
+    e_min[line] = energy_tmp;
+    line++;
   }
 
-  // 磁場の規格化を行う
-  auto max_index = distance(M.begin(), max_element(M.begin(), M.end())); // min_indexの方はsize_t
-  for (int i = 0; i < M.size(); i++)
-  {
-    M[i] /= M[max_index];
-  }
-
-  plot_h.push_back(0);
-  plot_m.push_back(M[0]);
-
-  // E-hグラフにおける交点を求める処理を以下で行う
-  for (int i = 0; i < M.size() - 1; i++)
-  {
-    vector<double> mi_intersec(M.size(), 20.0); // M_iとM_i+1,M_i+2...との交点のx座標を格納した配列
-
-    for (int k = i + 1; k < M.size(); k++) // M_iとM_i+1の交点の座標を計算して記録 k < M.size() - 1 -> k < M.size()
-    {
-      mi_intersec[k - (i + 1)] = double((e_min[k] - e_min[i]) / (k - i));
-    }
-
-    // 列挙した交点のうち、最もx座標の値が小さいものを選択して記録する
-    auto min_index = distance(mi_intersec.begin(), min_element(mi_intersec.begin(), mi_intersec.end())); // min_indexの方はsize_t
-    int skip_itr = int(min_index) + 1;
-
-    // skipされるぶんについても値を出力する
-    for (int l = 0; l < skip_itr - 1; l++)
-    {
-      plot_h.push_back(mi_intersec[min_index]);
-      plot_m.push_back(M[i + l + 1]);
-    }
-
-    plot_h.push_back(mi_intersec[min_index]);
-    plot_m.push_back(M[i + skip_itr]);
-    // 上記に該当する磁化のindexを取得する
-    i += int(min_index); // M_iとM_{i+α}の交点が最小だった場合には、M_{i+α-1}に着目したloopはskipする。
-  }
-
-  //====================== プラトー幅を調べる ===============================
-  double width;
-  for (int i = 0; i < M.size() - 2; i++)
-  {
-    width = plot_h[i + 1] - plot_h[i];
-    plateau_width.push_back(width);
-  }
-
-  plateau_width.push_back(0);
-
-  // 交点の情報の表示
-  cout
-      << "================================================\n";
-  cout << setw(5) << "h"
-       << "  " << setw(16) << "M"
-       << " "
-       << "J_{red}"
-       << " "
-       << "J_{green}"
-       << " "
-       << "J_{blue}"
-       << " "
-       << "plateau width" << endl;
-  cout << "------------------------------------------------\n";
-  for (int i = 0; i < plot_h.size(); i++)
-  {
-    cout << left << setw(5) << plot_h[i]
-         << " " << setw(15) << plot_m[i]
-         << " " << J_red
-         << " " << J_green
-         << " " << J_blue
-         << " " << plateau_width[i] << endl;
-  }
-  cout << "================================================\n";
-
-  // 交点の情報をファイルへ書き出す
-
-  int site_num = sys_site_A + sys_site_B;
-  ofstream plateau_data(GNUPLOT_DATA_DIR);
-  for (int i = 0; i < plot_h.size(); i++)
-  {
-    plateau_data << left << plot_h[i]
-                 << " " << setw(15) << plot_m[i]
-                 << " " << J_red
-                 << " " << J_green
-                 << " " << J_blue
-                 << " " << plateau_width[i] << endl;
-  }
-
-  plateau_data.close();
-
-  // FILE *gnuplot = popen("gnuplot -persist", "w");
-  // fprintf(gnuplot, "set key left top\n");
-  // fprintf(gnuplot, "set xrange[0:%f]\n", plot_h[plot_h.size() - 1] + 0.5);
-  // fprintf(gnuplot, "plot \"%s\" using 1:2 with steps title \"%s\"\n", GNUPLOT_DATA_DIR.c_str(), GNUPLOT_LEGEND.c_str());
-  // fprintf(gnuplot, "set title \"%s\"\n", GNUPLOT_TITLE.c_str());
-  // fprintf(gnuplot, "set term png\n");
-  // fprintf(gnuplot, "set output \"%s\";replot\n", GNUPLOT_GRAPH_DIR.c_str());
-  // fprintf(gnuplot, "set term qt\n");
-  // fflush(gnuplot);
-  // pclose(gnuplot);
-}
-
-/*磁化曲線のplotを行う*/
-void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, vector<string> &file, string GNUPLOT_DATA_DIR)
-{
-  vector<double> M;     // 磁化の情報を格納するための配列
-  vector<double> e_min; // 各部分空間における基底状態のエネルギー固有値を代入するための配列
-
-  vector<double> plot_h; // 交点のh座標を格納する(横軸)
-  vector<double> plot_m; // 交点のM座標を格納する(縦軸)
-
-  double abs_of_dif_Jr_Jg = abs(J_red - J_green);  //|J_red - J_green|の値
-  double abs_of_dif_Jr_Jb = abs(J_red - J_blue);   //|J_red - J_blue|の値
-  double abs_of_dif_Jg_Jb = abs(J_green - J_blue); //|J_green - J_blue|の値
-  vector<double> plateau_width;                    // h_{i+1} - h_iの値を格納する
-
-  for (int up = min_up_spin; up < max_up_spin + 1; up++)
-  {
-    double start_subsystem = omp_get_wtime();
-    Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, up); // Subsystem_Szオブジェクトのupスピン本数の再設定
-
-    // upスピンの本数が上記の場合における部分空間とHamiltonian行列の用意
-    H.sub_space_check();
-    H.set_system_info();
-    H.sub_hamiltonian();
-
-    H.MP_schedule_sub_lanczos(1000); // lanczos法による固有値計算
-    double end_subsystem = omp_get_wtime();
-
-    cout << "run_time = " << end_subsystem - start_subsystem << endl;
-    cout << H << endl;
-    // 基底状態での固有エネルギーと磁化の値の格納
-    M.push_back(H.mag);
-    e_min.push_back(H.eigen_value);
-  }
-
-  // 磁場の規格化を行う
-  auto max_index = distance(M.begin(), max_element(M.begin(), M.end())); // min_indexの方はsize_t
-  for (int i = 0; i < M.size(); i++)
-  {
-    M[i] /= M[max_index];
-  }
+  input.close();
 
   // M0についてはここで格納する
   plot_h.push_back(0);
@@ -5286,7 +5105,7 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
   // 交点の情報をファイルへ書き出す
 
   int site_num = sys_site_A + sys_site_B;
-  ofstream plateau_data(GNUPLOT_DATA_DIR);
+  ofstream plateau_data(dir_output);
   for (int i = 0; i < plot_h.size(); i++)
   {
     plateau_data << setprecision(15) << left << plot_h[i]
@@ -5298,42 +5117,41 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
   }
 
   plateau_data.close();
-
-  // FILE *gnuplot = popen("gnuplot -persist", "w");
-  // fprintf(gnuplot, "set key left top\n");
-  // fprintf(gnuplot, "set xrange[0:%f]\n", plot_h[plot_h.size() - 1] + 0.5);
-  // fprintf(gnuplot, "plot \"%s\" using 1:2 with steps title \"%s\"\n", GNUPLOT_DATA_DIR.c_str(), GNUPLOT_LEGEND.c_str());
-  // fprintf(gnuplot, "set title \"%s\"\n", GNUPLOT_TITLE.c_str());
-  // fprintf(gnuplot, "set term png\n");
-  // fprintf(gnuplot, "set output \"%s\";replot\n", GNUPLOT_GRAPH_DIR.c_str());
-  // fprintf(gnuplot, "set term qt\n");
-  // fflush(gnuplot);
-  // pclose(gnuplot);
 }
 
 // spin-spin相関の計算<Ψ|S_i^zS_j^z|Ψ>
-void Subsystem_Sz::clac_szz_rel(const int site_num, std::string dir_output)
+void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
 {
   double rel_ij; // サイトi,jの相関係数
   bool is_up_spin_i, is_up_spin_j;
   int sign; // S_i^zS_j^z|Ψ>の符号を代入する sign = ±1
   double evec_val;
-  ofstream ofs(dir_output);
+  // ofstream ofs(dir_output);
+  FILE *fp;
+  fp = fopen(dir_output.c_str(), "w");
 
   // siteについてのloop(はじめにどのサイト同士の相関係数を計算するかを指定する)
   //[1]i,jがともに部分系Aに属するサイトの場合
-  ofs << setw(3) << "i∈A"
-      << ", "
-      << "j∈A"
-      << ","
-      << setw(18) << "rel_ij"
-      << ","
-      << "rel_ij x 5.0"
-      << "\n ";
-  ofs
-      << "---------------------------------------------\n";
+  // ofs << "====================================================================\n";
+  // ofs << "Calculation of <S_i^z S_j^z>\n";
+
+  // ofs
+  //     << setw(3) << "i∈A"
+  //     << ", "
+  //     << "j∈A"
+  //     << ","
+  //     << setw(18) << "rel_ij"
+  //     << ","
+  //     << "rel_ij x 5.0"
+  //     << "\n ";
+  // ofs
+  //     << "---------------------------------------------\n";
+
+  fprintf(fp, "i in A   j in A   rel_ij\n");
+  fprintf(fp, "---------------------------------------------\n");
   for (int i = 0; i < tot_site_A; i++)
   {
+    // #pragma omp parallel for
     for (int j = i; j < tot_site_A; j++)
     {
       rel_ij = 0.;
@@ -5358,27 +5176,33 @@ void Subsystem_Sz::clac_szz_rel(const int site_num, std::string dir_output)
               sign = 1;
             else
               sign = -1;
+
             evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
             rel_ij += sign * 0.25 * evec_val * evec_val;
           }
         }
       }
-      ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
-  ofs << "---------------------------------------------\n";
+  // ofs << "---------------------------------------------\n";
+  fprintf(fp, "---------------------------------------------\n");
   //[2]i,jがともに部分系Bに属するサイトの場合
-  ofs << setw(3) << "i∈B"
-      << ", "
-      << "j∈B"
-      << ","
-      << setw(18) << "rel_ij"
-      << ","
-      << "rel_ij x 5.0"
-      << "\n";
-  ofs << "---------------------------------------------\n";
+  // ofs << setw(3) << "i∈B"
+  //     << ", "
+  //     << "j∈B"
+  //     << ","
+  //     << setw(18) << "rel_ij"
+  //     << ","
+  //     << "rel_ij x 5.0"
+  //     << "\n";
+  // ofs << "---------------------------------------------\n";
+  fprintf(fp, "i in B   j in B   rel_ij\n");
+  fprintf(fp, "---------------------------------------------\n");
   for (int i = 0; i < tot_site_B; i++)
   {
+    // #pragma omp parallel for
     for (int j = i; j < tot_site_B; j++)
     {
       rel_ij = 0.;
@@ -5408,19 +5232,23 @@ void Subsystem_Sz::clac_szz_rel(const int site_num, std::string dir_output)
           }
         }
       }
-      ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      // ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
   //[3]2サイトがそれぞれ部分系A,Bに属する場合
-  ofs << "---------------------------------------------\n";
-  ofs << setw(3) << "i∈A"
-      << ", "
-      << "j∈B"
-      << ","
-      << setw(18) << "rel_ij\n";
-  ofs << "---------------------------------------------\n";
+  // ofs << "---------------------------------------------\n";
+  // ofs << setw(3) << "i∈A"
+  //     << ", "
+  //     << "j∈B"
+  //     << ","
+  //     << setw(18) << "rel_ij\n";
+  // ofs << "---------------------------------------------\n";
+  fprintf(fp, "i in A   j in B   rel_ij\n");
+  fprintf(fp, "---------------------------------------------\n");
   for (int i = 0; i < tot_site_A; i++)
   {
+    // #pragma omp parallel for
     for (int j = 0; j < tot_site_B; j++)
     {
       rel_ij = 0.;
@@ -5451,10 +5279,13 @@ void Subsystem_Sz::clac_szz_rel(const int site_num, std::string dir_output)
           }
         }
       }
-      ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
-  ofs.close();
+  // ofs << "====================================================================\n";
+  // ofs.close();
+  fclose(fp);
 };
 
 void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
@@ -5462,22 +5293,31 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
   double rel_ij; // サイトi,jの相関係数
   bool is_up_spin_i, is_up_spin_j;
   double evec_val;
-  ofstream ofs(dir_output);
+  FILE *fp;
+  fp = fopen(dir_output.c_str(), "w");
+  // ofstream ofs(dir_output);
+  // ofs << "====================================================================\n";
+  // ofs << "Calculation of <S_i^x S_j^x>\n";
 
   //[1]i,jがともに部分系Aに属するサイトの場合
-  ofs << setw(3) << "i∈A"
-      << ", "
-      << "j∈A"
-      << ","
-      << setw(18) << "rel_ij"
-      << ","
-      << "rel_ij x 5.0"
-      << "\n ";
-  ofs
-      << "---------------------------------------------\n";
+  // ofs << setw(3) << "i∈A"
+  //     << ", "
+  //     << "j∈A"
+  //     << ","
+  //     << setw(18) << "rel_ij"
+  //     << ","
+  //     << "rel_ij x 5.0"
+  //     << "\n ";
+  // ofs
+  //     << "---------------------------------------------\n";
+
+  fprintf(fp, "i in A   j in A   rel_ij\n");
+  fprintf(fp, "---------------------------------------------\n");
+
   for (int i = 0; i < tot_site_A; i++)
   {
-    for (int j = 0; j < tot_site_A; j++) // j=0 startにすることでS_i^+Sj-とS_i^-とS_j^+を一度に計算することができる
+#pragma omp parallel for
+    for (int j = i; j < tot_site_A; j++) // j=0 startにすることでS_i^+Sj-とS_i^-とS_j^+を一度に計算することができる
     {
       rel_ij = 0.;
       for (int No = 0; No < pair_num; No++)
@@ -5496,50 +5336,66 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
             is_up_spin_i = ket_A.test(i); // bitが1(up)ならtrue、そうでないならfalse
             is_up_spin_j = ket_A.test(j);
 
+            if (is_up_spin_i != is_up_spin_j)
+            {
+              // boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
+              ket_A.flip(i);
+              ket_A.flip(j);
+
+              int n_trans = (int)(ket_A.to_ulong());  //|n>の遷移先を調べる
+              int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
+              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
+            }
+
             // i番目のスピンがdownかつj番目のスピンがupの場合
-            if (is_up_spin_i == false && is_up_spin_j == true)
-            {
-              boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
-              ket_A1.flip(i);
-              ket_A1.flip(j);
+            // if (is_up_spin_i == false && is_up_spin_j == true)
+            // {
+            //   boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
+            //   ket_A1.flip(i);
+            //   ket_A1.flip(j);
 
-              int n_trans = (int)(ket_A1.to_ulong()); //|n>の遷移先を調べる
-              int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
-              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
-            }
+            //   int n_trans = (int)(ket_A1.to_ulong()); //|n>の遷移先を調べる
+            //   int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
+            //   rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
+            // }
 
-            // i番目のスピンがupかつj番目のスピンがdownの場合
-            if (is_up_spin_i == true && is_up_spin_j == false)
-            {
-              boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
-              ket_A1.flip(i);
-              ket_A1.flip(j);
+            // // i番目のスピンがupかつj番目のスピンがdownの場合
+            // if (is_up_spin_i == true && is_up_spin_j == false)
+            // {
+            //   boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
+            //   ket_A1.flip(i);
+            //   ket_A1.flip(j);
 
-              int n_trans = (int)(ket_A1.to_ulong()); //|n>の遷移先を調べる
-              int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
-              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
-            }
+            //   int n_trans = (int)(ket_A1.to_ulong()); //|n>の遷移先を調べる
+            //   int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
+            //   rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
+            // }
           }
         }
       }
-      ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << endl;
+      // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << endl;
+      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
-  ofs << "---------------------------------------------\n";
-
+  // ofs << "---------------------------------------------\n";
+  fprintf(fp, "---------------------------------------------\n");
   //[2]i,jがともに部分系Bに属するサイトの場合
-  ofs << setw(3) << "i∈B"
-      << ", "
-      << "j∈B"
-      << ","
-      << setw(18) << "rel_ij"
-      << ","
-      << "rel_ij x 5.0"
-      << "\n";
-  ofs << "---------------------------------------------\n";
+  // ofs
+  //     << setw(3) << "i∈B"
+  //     << ", "
+  //     << "j∈B"
+  //     << ","
+  //     << setw(18) << "rel_ij"
+  //     << ","
+  //     << "rel_ij x 5.0"
+  //     << "\n";
+  // ofs << "---------------------------------------------\n";
+  fprintf(fp, "i in B   j in B   rel_ij\n");
+  fprintf(fp, "---------------------------------------------\n");
   for (int i = 0; i < tot_site_B; i++)
   {
-    for (int j = 0; j < tot_site_B; j++)
+#pragma omp parallel for
+    for (int j = i; j < tot_site_B; j++)
     {
       rel_ij = 0.;
       for (int No = 0; No < pair_num; No++)
@@ -5558,46 +5414,61 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
             is_up_spin_i = ket_B.test(i);
             is_up_spin_j = ket_B.test(j);
 
+            if (is_up_spin_i != is_up_spin_j)
+            {
+              // boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
+              ket_B.flip(i);
+              ket_B.flip(j);
+
+              int m_trans = (int)(ket_B.to_ulong());  //|m>の遷移先を調べる
+              int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
+              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
+            }
+
             // i番目のスピンがdownかつj番目のスピンがupの場合
-            if (is_up_spin_i == false && is_up_spin_j == true)
-            {
-              boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
-              ket_B1.flip(i);
-              ket_B1.flip(j);
+            // if (is_up_spin_i == false && is_up_spin_j == true)
+            // {
+            //   boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
+            //   ket_B1.flip(i);
+            //   ket_B1.flip(j);
 
-              int m_trans = (int)(ket_B1.to_ulong()); //|m>の遷移先を調べる
-              int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
-              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
-            }
+            //   int m_trans = (int)(ket_B1.to_ulong()); //|m>の遷移先を調べる
+            //   int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
+            //   rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
+            // }
 
-            // i番目のスピンがupかつj番目のスピンがdownの場合
-            if (is_up_spin_i == true && is_up_spin_j == false)
-            {
-              boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
-              ket_B1.flip(i);
-              ket_B1.flip(j);
+            // // i番目のスピンがupかつj番目のスピンがdownの場合
+            // if (is_up_spin_i == true && is_up_spin_j == false)
+            // {
+            //   boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
+            //   ket_B1.flip(i);
+            //   ket_B1.flip(j);
 
-              int m_trans = (int)(ket_B1.to_ulong()); //|m>の遷移先を調べる
-              int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
-              rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
-            }
+            //   int m_trans = (int)(ket_B1.to_ulong()); //|m>の遷移先を調べる
+            //   int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
+            //   rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
+            // }
           }
         }
       }
-      ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      // ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
 
   //[3]2サイトがそれぞれ部分系A,Bに属する場合
-  ofs << "---------------------------------------------\n";
-  ofs << setw(3) << "i∈A"
-      << ", "
-      << "j∈B"
-      << ","
-      << setw(18) << "rel_ij\n";
-  ofs << "---------------------------------------------\n";
+  // ofs << "---------------------------------------------\n";
+  // ofs << setw(3) << "i∈A"
+  //     << ", "
+  //     << "j∈B"
+  //     << ","
+  //     << setw(18) << "rel_ij\n";
+  // ofs << "---------------------------------------------\n";
+  fprintf(fp, "i in A   j in B   rel_ij\n");
+  fprintf(fp, "---------------------------------------------\n");
   for (int i = 0; i < tot_site_A; i++)
   {
+#pragma omp parallel for
     for (int j = 0; j < tot_site_B; j++)
     {
       rel_ij = 0.;
@@ -5624,13 +5495,13 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
             {
               if (is_up_spin_i == false && is_up_spin_j == true)
               {
-                boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
-                boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
-                ket_A1.flip(i);
-                ket_B1.flip(j);
+                // boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
+                // boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
+                ket_A.flip(i);
+                ket_B.flip(j);
 
-                int n_trans = (int)(ket_A1.to_ulong());
-                int m_trans = (int)(ket_B1.to_ulong());
+                int n_trans = (int)(ket_A.to_ulong());
+                int m_trans = (int)(ket_B.to_ulong());
 
                 int bn_ctr = tot_Sz[No - 1].gbm_A[n_trans];
                 int bm_ctr = tot_Sz[No - 1].gbm_B[m_trans];
@@ -5644,13 +5515,13 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
               if (is_up_spin_i == true && is_up_spin_j == false)
               {
 
-                boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
-                boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
-                ket_A1.flip(i);
-                ket_B1.flip(j);
+                // boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
+                // boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
+                ket_A.flip(i);
+                ket_B.flip(j);
 
-                int n_trans = (int)(ket_A1.to_ulong());
-                int m_trans = (int)(ket_B1.to_ulong());
+                int n_trans = (int)(ket_A.to_ulong());
+                int m_trans = (int)(ket_B.to_ulong());
 
                 int bn_ctr = tot_Sz[No + 1].gbm_A[n_trans];
                 int bm_ctr = tot_Sz[No + 1].gbm_B[m_trans];
@@ -5661,10 +5532,13 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
           }
         }
       }
-      ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      // ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
-  ofs.close();
+  // ofs << "====================================================================\n";
+  // ofs.close();
+  fclose(fp);
 };
 
 /*------------------------------標準出力関係------------------------------*/
