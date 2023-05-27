@@ -12,9 +12,8 @@ var7="" #Y-kapellasiteの模型におけるbondの相互作用J_red
 var8="" #Y-kapellasiteの模型におけるbondの相互作用J_green
 var9="" #Y-kapellasiteの模型におけるbondの相互作用J_blue
 
-LATTICE="chain"
-SITENUM="12"
-
+LATTICE="kagome"
+SITENUM="27"
 # 計算を行いたいjsetファイルを格納しているディレクトリのリストを取得する
 from_dir="./sample_lists/${LATTICE}/${SITENUM}site"
 to_dir="./settings"

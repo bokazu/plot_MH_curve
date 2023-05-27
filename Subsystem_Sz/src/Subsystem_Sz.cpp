@@ -3708,8 +3708,7 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
   }
 
   random_device rand;
-  // mt19937 mt(rand());
-  mt19937 mt(0x00111111);
+  mt19937 mt(rand());
   uniform_real_distribution<> rand1(0, 1);
   for (int No = 0; No < pair_num; No++)
   {
@@ -5149,10 +5148,14 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
 
   fprintf(fp, "i in A   j in A   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
+
+  int i, j;
+  double start_szz_AA, end_szz_AA;
+  start_szz_AA = omp_get_wtime();
+#pragma omp parallel for private(i, j)
   for (int i = 0; i < tot_site_A; i++)
   {
-    // #pragma omp parallel for
-    for (int j = i; j < tot_site_A; j++)
+    for (j = i; j < tot_site_A; j++)
     {
       rel_ij = 0.;
       for (int No = 0; No < pair_num; No++)
@@ -5186,6 +5189,9 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
+  end_szz_AA = omp_get_wtime();
+  cout << "run time of szz(i, j in A) = " << end_szz_AA - start_szz_AA << "[sec]\n";
+
   // ofs << "---------------------------------------------\n";
   fprintf(fp, "---------------------------------------------\n");
   //[2]i,jがともに部分系Bに属するサイトの場合
@@ -5200,10 +5206,13 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
   // ofs << "---------------------------------------------\n";
   fprintf(fp, "i in B   j in B   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
+
+  double start_szz_BB, end_szz_BB;
+  start_szz_BB = omp_get_wtime();
+#pragma omp parallel for private(i, j)
   for (int i = 0; i < tot_site_B; i++)
   {
-    // #pragma omp parallel for
-    for (int j = i; j < tot_site_B; j++)
+    for (j = i; j < tot_site_B; j++)
     {
       rel_ij = 0.;
       for (int No = 0; No < pair_num; No++)
@@ -5236,6 +5245,9 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
+
+  end_szz_BB = omp_get_wtime();
+  cout << "run time of szz(i, j in B) = " << end_szz_BB - start_szz_BB << "[sec]\n";
   //[3]2サイトがそれぞれ部分系A,Bに属する場合
   // ofs << "---------------------------------------------\n";
   // ofs << setw(3) << "i∈A"
@@ -5246,10 +5258,13 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
   // ofs << "---------------------------------------------\n";
   fprintf(fp, "i in A   j in B   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
+
+  double start_szz_AB, end_szz_AB;
+  start_szz_AB = omp_get_wtime();
+#pragma omp parallel for private(i, j)
   for (int i = 0; i < tot_site_A; i++)
   {
-    // #pragma omp parallel for
-    for (int j = 0; j < tot_site_B; j++)
+    for (j = 0; j < tot_site_B; j++)
     {
       rel_ij = 0.;
       // 部分空間についてのloop
@@ -5258,22 +5273,23 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
         // 状態についてのloop
         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
         {
+          // 状態の用意
+          int state_num_of_A = tot_Sz[No].bm_A[n];
+          boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
+          // i番目のスピンの向きを確認
+          is_up_spin_i = ket_A.test(i);
           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
           {
-            // 状態の用意
-            int state_num_of_A = tot_Sz[No].bm_A[n];
             int state_num_of_B = tot_Sz[No].bm_B[m];
-            boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
             boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
-
-            // i,j番目のスピンの向きを確認
-            is_up_spin_i = ket_A.test(i);
+            // j番目のスピンの向きを確認
             is_up_spin_j = ket_B.test(j);
 
             if (is_up_spin_i == is_up_spin_j)
               sign = 1;
             else
               sign = -1;
+
             evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
             rel_ij += sign * 0.25 * evec_val * evec_val;
           }
@@ -5283,6 +5299,8 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
+  end_szz_AB = omp_get_wtime();
+  cout << "run time of szz(i in A , j in B) = " << end_szz_AB - start_szz_AB << "[sec]\n";
   // ofs << "====================================================================\n";
   // ofs.close();
   fclose(fp);
@@ -5314,10 +5332,10 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
   fprintf(fp, "i in A   j in A   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
 
+  int i, j;
   for (int i = 0; i < tot_site_A; i++)
   {
-#pragma omp parallel for
-    for (int j = i; j < tot_site_A; j++) // j=0 startにすることでS_i^+Sj-とS_i^-とS_j^+を一度に計算することができる
+    for (j = i; j < tot_site_A; j++) // j=0 startにすることでS_i^+Sj-とS_i^-とS_j^+を一度に計算することができる
     {
       rel_ij = 0.;
       for (int No = 0; No < pair_num; No++)
@@ -5325,6 +5343,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
         // 状態についてのloop(|スピン状態> = |n>|m>)
         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
         {
+#pragma omp parallel for reduction(+ : rel_ij)
           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
           {
             // 状態の用意
@@ -5392,10 +5411,10 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
   // ofs << "---------------------------------------------\n";
   fprintf(fp, "i in B   j in B   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
+
   for (int i = 0; i < tot_site_B; i++)
   {
-#pragma omp parallel for
-    for (int j = i; j < tot_site_B; j++)
+    for (j = i; j < tot_site_B; j++)
     {
       rel_ij = 0.;
       for (int No = 0; No < pair_num; No++)
@@ -5403,6 +5422,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
         // 状態についてのloop
         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
         {
+#pragma omp parallel for reduction(+ : rel_ij)
           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
           {
             // 状態の用意
@@ -5468,8 +5488,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
   fprintf(fp, "---------------------------------------------\n");
   for (int i = 0; i < tot_site_A; i++)
   {
-#pragma omp parallel for
-    for (int j = 0; j < tot_site_B; j++)
+    for (j = 0; j < tot_site_B; j++)
     {
       rel_ij = 0.;
       // 部分空間についてのloop
@@ -5478,6 +5497,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
         // 状態についてのloop
         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
         {
+#pragma omp parallel for reduction(+ : rel_ij)
           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
           {
             // 状態の用意
