@@ -22,6 +22,10 @@ dir_list=("$from_dir"/*/)
 
 cmake -S . -DCMAKE_CXX_COMPILER=icpx -B build
 cmake --build build
+
+export KMP_AFFINITY=scatter
+export OMP_SCHEDULE="dynamic,3"
+
 for dir in "${dir_list[@]}"; do
         dir=${dir%*/}
         echo "Copying files from $dir to $to_dir"

@@ -182,7 +182,7 @@ void vec_init(int dim, T *vec)
     {
         vec[i] = 0;
     }
-}
+};
 
 template <typename T>
 void MP_vec_init(int dim, T *vec)
@@ -192,7 +192,20 @@ void MP_vec_init(int dim, T *vec)
     {
         vec[i] = 0;
     }
-}
+};
+
+// double MP_schedule_mat_init(int row_dim, int col_dim, double **mat)
+// {
+//     int i, j;
+// #pragma omp parallel for private(i, j) schedule(runtime)
+//     for (i = 0; i < row_dim; i++)
+//     {
+//         for (j = 0; j < col_dim; j++)
+//         {
+//             mat[i][j] = 0.0;
+//         }
+//     }
+// };
 
 template <typename T>
 void MP_schedule_vec_init(int dim, T *vec)
@@ -202,13 +215,13 @@ void MP_schedule_vec_init(int dim, T *vec)
     {
         vec[i] = 0;
     }
-}
+};
 
 // ファイルからデータを読み込み磁化曲線のplotに必要なデータを計算する
 void MP_schedule_plot_MHcurve(double J_red, double J_green, double J_blue, std::string dir_input, std::string dir_output);
 
 // ある範囲の磁化でのエネルギー固有値を計算する
-void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_szz_rel, char c = 'N');
+void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int start_up_spin, int end_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_szz_rel, char c = 'N');
 
 // コンビネーションnCrの計算を行う
 int comb(int n, int r);

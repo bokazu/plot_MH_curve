@@ -3614,7 +3614,6 @@ double Subsystem_Sz::MP_sub_lanczos_timetest(const int tri_mat_dim, std::string 
 // lanczos法 OpenMP with schedule利用versionの各関数の処理に要する時間をテストする
 double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::string dir_output_time, char c, char info_ls)
 {
-  double start_lanczos = omp_get_wtime();
 
   ls_count = 0;
   double eps = 1.0;
@@ -3715,6 +3714,7 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
     int row_num = tot_Sz[No].bm_A_size;
     int col_num = tot_Sz[No].bm_B_size;
 
+#pragma omp parallel for private(j_init) schedule(runtime)
     for (int i = 0; i < row_num; i++)
     {
       for (j_init = 0; j_init < col_num; j_init++)
@@ -3795,6 +3795,8 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
       << setw(15) << "1step total time" << endl;
 
   bool is_odd;
+
+  double start_lanczos = omp_get_wtime();
   /*----------------lanczos Algorithm---------------*/
   for (int ls = 0; ls < tri_mat_dim; ls++)
   {
@@ -4111,13 +4113,16 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
   /*========================配列リソースのリリース part1===================*/
   delete[] eval_even;
   delete[] eval_odd;
-
-  double end_lanczos = omp_get_wtime();
-  total_lanczos = end_lanczos - start_lanczos;
+  if (c == 'N')
+  {
+    double end_lanczos = omp_get_wtime();
+    total_lanczos = end_lanczos - start_lanczos;
+  }
 
   /*======================基底状態の固有ベクトルの計算---------------------*/
   if (c == 'V')
   {
+    double start_calc_evec = omp_get_wtime();
     for (int No = 0; No < pair_num; No++)
     {
       MP_schedule_mm_init(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
@@ -4229,6 +4234,13 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
     {
       MP_schedule_mm_dscal(1. / dnrm2, tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].Eig.eigen_mat);
     }
+    double end_calc_evec = omp_get_wtime();
+    // lanczos法で固有ベクトルを求めるのに要した時間
+    double total_calc_evec = end_calc_evec - start_calc_evec;
+    cout << "run time of calculate eigen vector : " << total_calc_evec << "[sec]\n";
+    // lanczos法で固有値+固有ベクトルを求めるのに要した時間
+    double end_lanczos = omp_get_wtime();
+    total_lanczos = end_lanczos - start_lanczos;
   }
   /*========================配列リソースのリリース part2===================*/
   delete[] alpha;
@@ -4913,14 +4925,14 @@ void Subsystem_Sz::MP_schedule_calc_beta_oddstep(const int tri_mat_dim, const in
   }
 };
 
-void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int min_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_szz_rel, char c)
+void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int start_up_spin, int end_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_szz_rel, char c)
 {
   ofstream eval_data(dir_output_energy);
   vector<double> Magnetization; // 磁化の値を格納するための配列
   vector<double> eigen_values;  // 各部分空間における基底状態のエネルギー固有値を代入するための配列
   if (c == 'N')
   {
-    for (int up = min_up_spin; up <= max_up_spin; up++)
+    for (int up = start_up_spin; up <= end_up_spin; up++)
     {
       string dir_time = dir_output_time + to_string(up) + ".csv";
       double start_subsystem = omp_get_wtime();
@@ -4928,28 +4940,34 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
       H.sub_space_check();
       H.set_system_info();
       H.sub_hamiltonian();
-      H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time);
+      double lanczos_time = H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time);
       double end_subsystem = omp_get_wtime();
       cout << H << endl;
-      cout << "run time = " << end_subsystem - start_subsystem << "[sec]" << endl;
+      cout << "Total run time       = " << end_subsystem - start_subsystem << "[sec]" << endl;
+      cout << "lanczos run time     = " << lanczos_time << endl;
     }
     // 固有値のみを計算する場合はspin相関を計算しない
   }
   else if (c == 'V')
   {
-    for (int up = min_up_spin; up <= max_up_spin; up++)
+    for (int up = start_up_spin; up <= end_up_spin; up++)
     {
       string dir_time = dir_output_time + to_string(up) + ".csv";
       double start_subsystem = omp_get_wtime();
       Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, up);
+      double start_hamiltonian = omp_get_wtime();
       H.sub_space_check();
       H.set_system_info();
       H.sub_hamiltonian();
-      H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time, 'V');
+      double end_hamiltonian = omp_get_wtime();
+      double time_hamiltonian = end_hamiltonian - start_hamiltonian;
+      double lanczos_time = H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time, 'V');
       double end_subsystem = omp_get_wtime();
       double subsystem_time = end_subsystem - start_subsystem;
       cout << H << endl;
-      cout << "run time of calc energy = " << subsystem_time << "[sec]" << endl;
+      cout << "Total run time       = " << end_subsystem - start_subsystem << "[sec]" << endl;
+      cout << "Hamiltonian run time = " << time_hamiltonian << "[sec]" << endl;
+      cout << "lanczos run time     = " << lanczos_time << "[sec]" << endl;
 
       Magnetization.push_back(H.mag);
       eigen_values.push_back(H.eigen_value);
@@ -4960,7 +4978,7 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
       string dir_szz = dir_output_spin_szz_rel + to_string(up) + ".csv";
 
       double start_calc_sxx_rel = omp_get_wtime();
-      H.calc_sxx_rel(total_site_num, dir_sxx);
+      // H.calc_sxx_rel(total_site_num, dir_sxx);
       double end_calc_sxx_rel = omp_get_wtime();
       double calc_sxx_rel_time = end_calc_sxx_rel - start_calc_sxx_rel;
       cout << "run time of calc sxx rel = " << calc_sxx_rel_time << "[sec]"
@@ -4971,15 +4989,15 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
       H.calc_szz_rel(total_site_num, dir_szz);
       double end_calc_szz_rel = omp_get_wtime();
       double calc_szz_rel_time = end_calc_szz_rel - start_calc_szz_rel;
-      cout << "run time of calc szz rel = " << calc_szz_rel_time << "[sec]"
-           << "(" << calc_szz_rel_time * 100 / subsystem_time << "%)" << endl;
+      cout << "Time calc szz rel / total_time  = "
+           << calc_szz_rel_time * 100 / subsystem_time << "%" << endl;
     }
   }
   // 磁場の規格化
-  auto max_index = distance(Magnetization.begin(), max_element(Magnetization.begin(), Magnetization.end()));
+  // auto max_index = distance(Magnetization.begin(), max_element(Magnetization.begin(), Magnetization.end()));
   for (int i = 0; i < Magnetization.size(); i++)
   {
-    Magnetization[i] /= Magnetization[max_index];
+    Magnetization[i] /= max_up_spin;
   }
 
   // 結果の出力
@@ -5118,193 +5136,391 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
   plateau_data.close();
 }
 
-// spin-spin相関の計算<Ψ|S_i^zS_j^z|Ψ>
+// spin-spin相関の計算<Ψ|S_i^zS_j^z|Ψ>(メモリアクセス回数を配慮)
 void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
 {
-  double rel_ij; // サイトi,jの相関係数
+  double start_szz, end_szz, total_szz;
+  start_szz = omp_get_wtime();
+  // 各サイトごとのspin相関の値を記録す料の配列の確保
+  int dim = max(tot_site_A, tot_site_B);
+  int dim2 = dim * dim;
+  double *rel_ij = new double[dim2];
+  MP_schedule_vec_init(dim2, rel_ij);
+
+  /*-------------Open MP private variables-------------*/
+  int No, n, m, site_i, site_j;
+  int state_num_of_A, state_num_of_B;
   bool is_up_spin_i, is_up_spin_j;
   int sign; // S_i^zS_j^z|Ψ>の符号を代入する sign = ±1
   double evec_val;
-  // ofstream ofs(dir_output);
+  /*---------------------------------------------------*/
+
+  /*----各siteごとのspin-spin相関の結果をoutputするためのファイル-----*/
   FILE *fp;
   fp = fopen(dir_output.c_str(), "w");
 
-  // siteについてのloop(はじめにどのサイト同士の相関係数を計算するかを指定する)
-  //[1]i,jがともに部分系Aに属するサイトの場合
-  // ofs << "====================================================================\n";
-  // ofs << "Calculation of <S_i^z S_j^z>\n";
-
-  // ofs
-  //     << setw(3) << "i∈A"
-  //     << ", "
-  //     << "j∈A"
-  //     << ","
-  //     << setw(18) << "rel_ij"
-  //     << ","
-  //     << "rel_ij x 5.0"
-  //     << "\n ";
-  // ofs
-  //     << "---------------------------------------------\n";
-
+  double start_szz_A, end_szz_A, time_szz_A;
   fprintf(fp, "i in A   j in A   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
-
-  int i, j;
-  double start_szz_AA, end_szz_AA;
-  start_szz_AA = omp_get_wtime();
-#pragma omp parallel for private(i, j)
-  for (int i = 0; i < tot_site_A; i++)
+  start_szz_A = omp_get_wtime();
+  // 部分空間についてのloop
+  for (No = 0; No < pair_num; No++)
   {
-    for (j = i; j < tot_site_A; j++)
+// 状態についてのloop
+#pragma omp parallel for private(n, m, state_num_of_A, state_num_of_B, site_i, site_j, is_up_spin_i, is_up_spin_j, sign, evec_val) schedule(runtime) reduction(+ : rel_ij[0 : dim2])
+    for (m = 0; m < tot_Sz[No].bm_B_size; m++)
     {
-      rel_ij = 0.;
-      for (int No = 0; No < pair_num; No++)
+      for (n = 0; n < tot_Sz[No].bm_A_size; n++)
       {
+        //|n>_Aの用意
+        state_num_of_A = tot_Sz[No].bm_A[n];
+        boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
+        // 固有ベクトルの用意(szzでは状態が遷移しないのでここで用意する)
+        evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
 
-        // 状態についてのloop
-        for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
+        // site番号についてのloop
+        for (site_i = 0; site_i < tot_site_A; site_i++)
         {
-          for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
+          is_up_spin_i = ket_A.test(site_i);
+          for (site_j = site_i; site_j < tot_site_A; site_j++)
           {
-            // 状態の用意
-            // スピン演算子は部分系AのサイトについてのものなのでbitはAのものだけを用意すれば良い
-            int state_num_of_A = tot_Sz[No].bm_A[n];
-            boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
-
-            // i,j番目のスピンの向きを確認
-            is_up_spin_i = ket_A.test(i);
-            is_up_spin_j = ket_A.test(j);
+            is_up_spin_j = ket_A.test(site_j);
 
             if (is_up_spin_i == is_up_spin_j)
+            {
               sign = 1;
+            }
             else
+            {
               sign = -1;
-
-            evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
-            rel_ij += sign * 0.25 * evec_val * evec_val;
+            }
+            rel_ij[site_j + dim * site_i] += sign * 0.25 * evec_val * evec_val;
           }
         }
       }
-      // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
-      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
-  end_szz_AA = omp_get_wtime();
-  cout << "run time of szz(i, j in A) = " << end_szz_AA - start_szz_AA << "[sec]\n";
+  end_szz_A = omp_get_wtime();
+  time_szz_A = end_szz_A - start_szz_A;
 
-  // ofs << "---------------------------------------------\n";
-  fprintf(fp, "---------------------------------------------\n");
-  //[2]i,jがともに部分系Bに属するサイトの場合
-  // ofs << setw(3) << "i∈B"
-  //     << ", "
-  //     << "j∈B"
-  //     << ","
-  //     << setw(18) << "rel_ij"
-  //     << ","
-  //     << "rel_ij x 5.0"
-  //     << "\n";
-  // ofs << "---------------------------------------------\n";
+  for (int i = 0; i < tot_site_A; i++)
+  {
+    for (int j = i; j < tot_site_A; j++)
+    {
+      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij[j + i * dim]);
+    }
+  }
+
+  MP_schedule_vec_init(dim2, rel_ij);
   fprintf(fp, "i in B   j in B   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
 
-  double start_szz_BB, end_szz_BB;
-  start_szz_BB = omp_get_wtime();
-#pragma omp parallel for private(i, j)
-  for (int i = 0; i < tot_site_B; i++)
+  double start_szz_B, end_szz_B, time_szz_B;
+  start_szz_B = omp_get_wtime();
+  // 部分空間についてのloop
+  for (No = 0; No < pair_num; No++)
   {
-    for (j = i; j < tot_site_B; j++)
+// 状態についてのloop
+#pragma omp parallel for private(n, m, state_num_of_A, state_num_of_B, site_i, site_j, is_up_spin_i, is_up_spin_j, sign, evec_val) schedule(runtime) reduction(+ : rel_ij[ : dim2])
+    for (m = 0; m < tot_Sz[No].bm_B_size; m++)
     {
-      rel_ij = 0.;
-      for (int No = 0; No < pair_num; No++)
-      {
-        // 状態についてのloop
-        for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
-        {
-          for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
-          {
-            // 状態の用意
-            // スピン演算子は部分系BのサイトについてのものなのでbitはBのものだけを用意すれば良い
-            int state_num_of_B = tot_Sz[No].bm_B[m];
-            boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
+      //|m>_Bの用意
+      state_num_of_B = tot_Sz[No].bm_B[m];
+      boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
 
-            // i,j番目のスピンの向きを確認
-            is_up_spin_i = ket_B.test(i);
-            is_up_spin_j = ket_B.test(j);
+      for (n = 0; n < tot_Sz[No].bm_A_size; n++)
+      {
+        // 固有ベクトルの用意(szzでは状態が遷移しないのでここで用意する)
+        evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+
+        // site番号についてのloop
+        for (site_i = 0; site_i < tot_site_B; site_i++)
+        {
+          is_up_spin_i = ket_B.test(site_i);
+          for (site_j = site_i; site_j < tot_site_B; site_j++)
+          {
+            is_up_spin_j = ket_B.test(site_j);
 
             if (is_up_spin_i == is_up_spin_j)
+            {
               sign = 1;
+            }
             else
+            {
               sign = -1;
-
-            evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
-            rel_ij += sign * 0.25 * evec_val * evec_val;
+            }
+            rel_ij[site_j + site_i * dim] += sign * 0.25 * evec_val * evec_val;
           }
         }
       }
-      // ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
-      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
+    }
+  }
+  end_szz_B = omp_get_wtime();
+  time_szz_B = end_szz_B - start_szz_B;
+
+  for (int i = 0; i < tot_site_B; i++)
+  {
+    for (int j = i; j < tot_site_B; j++)
+    {
+      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij[j + i * dim]);
     }
   }
 
-  end_szz_BB = omp_get_wtime();
-  cout << "run time of szz(i, j in B) = " << end_szz_BB - start_szz_BB << "[sec]\n";
-  //[3]2サイトがそれぞれ部分系A,Bに属する場合
-  // ofs << "---------------------------------------------\n";
-  // ofs << setw(3) << "i∈A"
-  //     << ", "
-  //     << "j∈B"
-  //     << ","
-  //     << setw(18) << "rel_ij\n";
-  // ofs << "---------------------------------------------\n";
+  MP_schedule_vec_init(dim2, rel_ij);
   fprintf(fp, "i in A   j in B   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
 
-  double start_szz_AB, end_szz_AB;
+  double start_szz_AB, end_szz_AB, time_szz_AB;
   start_szz_AB = omp_get_wtime();
-#pragma omp parallel for private(i, j)
-  for (int i = 0; i < tot_site_A; i++)
+  // 部分空間についてのloop
+  for (No = 0; No < pair_num; No++)
   {
-    for (j = 0; j < tot_site_B; j++)
+// 状態についてのloop
+#pragma omp parallel for private(n, m, state_num_of_A, state_num_of_B, site_i, site_j, is_up_spin_i, is_up_spin_j, sign, evec_val) schedule(runtime) reduction(+ : rel_ij[0 : dim2])
+    for (m = 0; m < tot_Sz[No].bm_B_size; m++)
     {
-      rel_ij = 0.;
-      // 部分空間についてのloop
-      for (int No = 0; No < pair_num; No++)
+      // |m>_Bの用意
+      state_num_of_B = tot_Sz[No].bm_B[m];
+      boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
+
+      for (n = 0; n < tot_Sz[No].bm_A_size; n++)
       {
-        // 状態についてのloop
-        for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
+        // |n>_Aの用意
+        state_num_of_A = tot_Sz[No].bm_A[n];
+        boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
+        // 固有ベクトルの用意(szzでは状態が遷移しないのでここで用意する)
+        evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+
+        // site番号についてのloop
+        for (site_i = 0; site_i < tot_site_A; site_i++)
         {
-          // 状態の用意
-          int state_num_of_A = tot_Sz[No].bm_A[n];
-          boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
-          // i番目のスピンの向きを確認
-          is_up_spin_i = ket_A.test(i);
-          for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
+          is_up_spin_i = ket_A.test(site_i);
+          for (site_j = 0; site_j < tot_site_B; site_j++)
           {
-            int state_num_of_B = tot_Sz[No].bm_B[m];
-            boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
-            // j番目のスピンの向きを確認
-            is_up_spin_j = ket_B.test(j);
+            is_up_spin_j = ket_B.test(site_j);
 
             if (is_up_spin_i == is_up_spin_j)
+            {
               sign = 1;
+            }
             else
+            {
               sign = -1;
-
-            evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
-            rel_ij += sign * 0.25 * evec_val * evec_val;
+            }
+            rel_ij[site_j + dim * site_i] += sign * 0.25 * evec_val * evec_val;
           }
         }
       }
-      // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
-      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
     }
   }
   end_szz_AB = omp_get_wtime();
-  cout << "run time of szz(i in A , j in B) = " << end_szz_AB - start_szz_AB << "[sec]\n";
-  // ofs << "====================================================================\n";
-  // ofs.close();
+  time_szz_AB = end_szz_AB - start_szz_AB;
+  end_szz = omp_get_wtime();
+  total_szz = end_szz - start_szz;
+  printf("run time of szz(Total)      = %f [sec]\n", total_szz);
+  printf("  - run time of szz(i, j in A)      = %f [sec]\n", time_szz_A);
+  printf("  - run time of szz(i, j in B)      = %f [sec]\n", time_szz_B);
+  printf("  - run time of szz(i in A, j in B) = %f [sec]\n", time_szz_AB);
+
+  for (int i = 0; i < tot_site_A; i++)
+  {
+    for (int j = 0; j < tot_site_B; j++)
+    {
+      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij[j + dim * i]);
+    }
+  }
+
   fclose(fp);
-};
+  delete[] rel_ij;
+}
+
+// spin-spin相関の計算<Ψ|S_i^zS_j^z|Ψ>(メモリアクセス回数を配慮していないversion)
+// void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
+// {
+//   double rel_ij; // サイトi,jの相関係数
+//   bool is_up_spin_i, is_up_spin_j;
+//   int sign; // S_i^zS_j^z|Ψ>の符号を代入する sign = ±1
+//   double evec_val;
+//   // ofstream ofs(dir_output);
+//   FILE *fp;
+//   fp = fopen(dir_output.c_str(), "w");
+
+//   // siteについてのloop(はじめにどのサイト同士の相関係数を計算するかを指定する)
+//   //[1]i,jがともに部分系Aに属するサイトの場合
+//   // ofs << "====================================================================\n";
+//   // ofs << "Calculation of <S_i^z S_j^z>\n";
+
+//   // ofs
+//   //     << setw(3) << "i∈A"
+//   //     << ", "
+//   //     << "j∈A"
+//   //     << ","
+//   //     << setw(18) << "rel_ij"
+//   //     << ","
+//   //     << "rel_ij x 5.0"
+//   //     << "\n ";
+//   // ofs
+//   //     << "---------------------------------------------\n";
+
+//   fprintf(fp, "i in A   j in A   rel_ij\n");
+//   fprintf(fp, "---------------------------------------------\n");
+
+//   int i, j,No,n,m, state_num_of_A,state_num_of_B;
+//   double start_szz_AA, end_szz_AA;
+//   start_szz_AA = omp_get_wtime();
+// #pragma omp parallel for private(i, j,No,n,m, is_up_spin_i, is_up_spin_j, sign, evec_val, state_num_of_A) reduction(+: rel_ij) schedule(runtime)
+//   for (int i = 0; i < tot_site_A; i++)
+//   {
+//     for (j = i; j < tot_site_A; j++)
+//     {
+//       rel_ij = 0.;
+//       for (int No = 0; No < pair_num; No++)
+//       {
+
+//         // 状態についてのloop
+//         for (n = 0; n < tot_Sz[No].bm_A_size; n++)
+//         {
+//           for (m = 0; m < tot_Sz[No].bm_B_size; m++)
+//           {
+//             // 状態の用意
+//             // スピン演算子は部分系AのサイトについてのものなのでbitはAのものだけを用意すれば良い
+//             int state_num_of_A = tot_Sz[No].bm_A[n];
+//             boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
+
+//             // i,j番目のスピンの向きを確認
+//             is_up_spin_i = ket_A.test(i);
+//             is_up_spin_j = ket_A.test(j);
+
+//             if (is_up_spin_i == is_up_spin_j)
+//               sign = 1;
+//             else
+//               sign = -1;
+
+//             evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+//             rel_ij += sign * 0.25 * evec_val * evec_val;
+//           }
+//         }
+//       }
+//       // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+//       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
+//     }
+//   }
+//   end_szz_AA = omp_get_wtime();
+//   cout << "run time of szz(i, j in A) = " << end_szz_AA - start_szz_AA << "[sec]\n";
+
+//   // ofs << "---------------------------------------------\n";
+//   fprintf(fp, "---------------------------------------------\n");
+//   //[2]i,jがともに部分系Bに属するサイトの場合
+//   // ofs << setw(3) << "i∈B"
+//   //     << ", "
+//   //     << "j∈B"
+//   //     << ","
+//   //     << setw(18) << "rel_ij"
+//   //     << ","
+//   //     << "rel_ij x 5.0"
+//   //     << "\n";
+//   // ofs << "---------------------------------------------\n";
+//   fprintf(fp, "i in B   j in B   rel_ij\n");
+//   fprintf(fp, "---------------------------------------------\n");
+
+//   double start_szz_BB, end_szz_BB;
+//   start_szz_BB = omp_get_wtime();
+// #pragma omp parallel for private(i, j,No,n,m, is_up_spin_i, is_up_spin_j, sign, evec_val, state_num_of_B) reduction(+: rel_ij) schedule(runtime)
+//   for (int i = 0; i < tot_site_B; i++)
+//   {
+//     for (j = i; j < tot_site_B; j++)
+//     {
+//       rel_ij = 0.;
+//       for (No = 0; No < pair_num; No++)
+//       {
+//         // 状態についてのloop
+//         for (n = 0; n < tot_Sz[No].bm_A_size; n++)
+//         {
+//           for (m = 0; m < tot_Sz[No].bm_B_size; m++)
+//           {
+//             // 状態の用意
+//             // スピン演算子は部分系BのサイトについてのものなのでbitはBのものだけを用意すれば良い
+//             int state_num_of_B = tot_Sz[No].bm_B[m];
+//             boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
+
+//             // i,j番目のスピンの向きを確認
+//             is_up_spin_i = ket_B.test(i);
+//             is_up_spin_j = ket_B.test(j);
+
+//             if (is_up_spin_i == is_up_spin_j)
+//               sign = 1;
+//             else
+//               sign = -1;
+
+//             evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+//             rel_ij += sign * 0.25 * evec_val * evec_val;
+//           }
+//         }
+//       }
+//       // ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+//       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
+//     }
+//   }
+
+//   end_szz_BB = omp_get_wtime();
+//   cout << "run time of szz(i, j in B) = " << end_szz_BB - start_szz_BB << "[sec]\n";
+//   //[3]2サイトがそれぞれ部分系A,Bに属する場合
+//   // ofs << "---------------------------------------------\n";
+//   // ofs << setw(3) << "i∈A"
+//   //     << ", "
+//   //     << "j∈B"
+//   //     << ","
+//   //     << setw(18) << "rel_ij\n";
+//   // ofs << "---------------------------------------------\n";
+//   fprintf(fp, "i in A   j in B   rel_ij\n");
+//   fprintf(fp, "---------------------------------------------\n");
+
+//   double start_szz_AB, end_szz_AB;
+//   start_szz_AB = omp_get_wtime();
+// #pragma omp parallel for private(i, j,No,n,m, is_up_spin_i, is_up_spin_j, sign, evec_val, state_num_of_B) reduction(+:rel_ij) schedule(runtime)
+//   for (int i = 0; i < tot_site_A; i++)
+//   {
+//     for (j = 0; j < tot_site_B; j++)
+//     {
+//       rel_ij = 0.;
+//       // 部分空間についてのloop
+//       for (No = 0; No < pair_num; No++)
+//       {
+//         // 状態についてのloop
+//         for (n = 0; n < tot_Sz[No].bm_A_size; n++)
+//         {
+//           // 状態の用意
+//           int state_num_of_A = tot_Sz[No].bm_A[n];
+//           boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
+//           // i番目のスピンの向きを確認
+//           is_up_spin_i = ket_A.test(i);
+//           for (m = 0; m < tot_Sz[No].bm_B_size; m++)
+//           {
+//             int state_num_of_B = tot_Sz[No].bm_B[m];
+//             boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
+//             // j番目のスピンの向きを確認
+//             is_up_spin_j = ket_B.test(j);
+
+//             if (is_up_spin_i == is_up_spin_j)
+//               sign = 1;
+//             else
+//               sign = -1;
+
+//             evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+//             rel_ij += sign * 0.25 * evec_val * evec_val;
+//           }
+//         }
+//       }
+//       // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
+//       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
+//     }
+//   }
+//   end_szz_AB = omp_get_wtime();
+//   cout << "run time of szz(i in A , j in B) = " << end_szz_AB - start_szz_AB << "[sec]\n";
+//   // ofs << "====================================================================\n";
+//   // ofs.close();
+//   fclose(fp);
+// };
 
 void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
 {
@@ -5343,7 +5559,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
         // 状態についてのloop(|スピン状態> = |n>|m>)
         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
         {
-#pragma omp parallel for reduction(+ : rel_ij)
+#pragma omp parallel for reduction(+ : rel_ij) schedule(runtime)
           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
           {
             // 状態の用意
@@ -5422,7 +5638,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
         // 状態についてのloop
         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
         {
-#pragma omp parallel for reduction(+ : rel_ij)
+#pragma omp parallel for reduction(+ : rel_ij) schedule(runtime)
           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
           {
             // 状態の用意
@@ -5497,7 +5713,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
         // 状態についてのloop
         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
         {
-#pragma omp parallel for reduction(+ : rel_ij)
+#pragma omp parallel for reduction(+ : rel_ij) schedule(runtime)
           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
           {
             // 状態の用意
