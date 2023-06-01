@@ -8,8 +8,12 @@ using namespace std;
 // コンストラクタ
 Subsystem_Sz::Subsystem_Sz(int sys_num, int site_A, int site_B, vector<string> &file, int up)
     : system_num(sys_num), tot_site_A(site_A), tot_site_B(site_B), up_spin(up),
-      block_row_num(1 << tot_site_A), block_col_num(1 << tot_site_B), pair_num(count_No()), tot_Sz(new Tot_Sz[pair_num]), ls_count(0), ls_check(false), eigen_value(0.), filename(file)
+      block_row_num(1 << tot_site_A), block_col_num(1 << tot_site_B), pair_num(count_No()), tot_Sz(new Tot_Sz[pair_num]), ls_count(0), ls_check(false), eigen_value(0.),
+      run_time_total(0.), run_time_hamiltonian(0.), run_time_eigenval(0.), run_time_eigenvec(0.),
+      run_time_szz_rel(0.), run_time_szz_A_rel(0.), run_time_szz_B_rel(0.), run_time_szz_AB_rel(0.),
+      run_time_sxx_rel(0.), run_time_sxx_A_rel(0.), run_time_sxx_AB_rel(0.), filename(file)
 {
+  double init_start = omp_get_wtime();
   mag = up_spin - (tot_site_A + tot_site_B) / 2.;
   Tot_Sz::system_num = system_num;
   for (int No = 0; No < pair_num; No++)
@@ -63,6 +67,9 @@ Subsystem_Sz::Subsystem_Sz(int sys_num, int site_A, int site_B, vector<string> &
 
   ifs.close();
   /*--------------------------------------------------------------------*/
+  double init_end = omp_get_wtime();
+  double init_total = init_end - init_start;
+  run_time_hamiltonian += init_total;
 }
 
 //(totS_A^zm, tot_S_B^z)のペア数のカウントを行うための関数
@@ -271,6 +278,7 @@ void Subsystem_Sz::check_up_pair()
 // 部分空間を張るスピン状態番号を確認する
 void Subsystem_Sz::sub_space_check()
 {
+  double ssc_start = omp_get_wtime(); // ssc = sub_space_check
   check_up_pair();
   // bm_A、bm_Bのメモリ再確保
   for (int No = 0; No < pair_num; No++)
@@ -293,6 +301,9 @@ void Subsystem_Sz::sub_space_check()
     sub_space_check_A(No);
     sub_space_check_B(No);
   }
+  double ssc_end = omp_get_wtime();
+  double ssc_total = ssc_end - ssc_start;
+  run_time_hamiltonian += ssc_total;
 };
 
 void Subsystem_Sz::sub_space_check_A(const int No)
@@ -687,6 +698,7 @@ void Subsystem_Sz::sub_int_hamiltonian()
 // Hamiltonian行列の行列要素の計算と配列への格納を行う
 void Subsystem_Sz::sub_hamiltonian()
 {
+  double hamiltonian_start = omp_get_wtime();
   for (int No = 0; No < pair_num; No++)
   {
     sub_count_nnz(No); // 各Tot_SzにおけるHamiltonian行列の非ゼロ要素数をカウントする
@@ -697,6 +709,10 @@ void Subsystem_Sz::sub_hamiltonian()
     //[memo]sub_iso_hamiltonianもSubsytem_Szクラスのメンバ関数に後で直す
   }
   sub_int_hamiltonian();
+  double hamiltonian_end = omp_get_wtime();
+  double hamiltonian_total = hamiltonian_end - hamiltonian_start;
+  run_time_hamiltonian += hamiltonian_total;
+  run_time_total += run_time_hamiltonian;
 };
 
 // lanczos法
@@ -3612,7 +3628,7 @@ double Subsystem_Sz::MP_sub_lanczos_timetest(const int tri_mat_dim, std::string 
 };
 
 // lanczos法 OpenMP with schedule利用versionの各関数の処理に要する時間をテストする
-double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::string dir_output_time, char c, char info_ls)
+void Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::string dir_output_time, char c, char info_ls)
 {
 
   ls_count = 0;
@@ -3632,7 +3648,9 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
   double start_diagonalize, end_diagonalize, time_diagonalize; // LAPACKを用いた数値対角化に要する時間[sec]
   double start_1step, end_1step, time_1step_lanczos;           // lanczos法において1step当たりに要する時間
 
-  double total_lanczos; // lanczos法全体に要する時間
+  double time_int_szz, start_int_szz, end_int_szz;
+
+  double total_eval; // lanczos法で固有値計算に要する時間
   // 固有ベクトルの用意
   if (c == 'V')
   {
@@ -3776,27 +3794,29 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
   }
   // tri_diag_evec = new double[tri_mat_dim * tri_mat_dim];
   // MP_schedule_vec_init(tri_mat_dim * tri_mat_dim, tri_diag_evec);
-  ofs << setw(5) << left << "ls"
+  ofs << setw(5) << left << "step"
       << ","
-      << setw(15) << "iso"
+      << setw(15) << "iso[sec]"
       << ","
-      << setw(15) << "int"
+      << setw(15) << "int[sec]"
       << ","
-      << setw(15) << "alpha"
+      << setw(15) << "int_szz[sec]"
       << ","
-      << setw(15) << "beta"
+      << setw(15) << "alpha[sec]"
       << ","
-      << setw(15) << "LowMemory"
+      << setw(15) << "beta[sec]"
       << ","
-      << setw(15) << "Renew Matrix"
+      << setw(15) << "LowMemory[sec]"
       << ","
-      << setw(15) << "Diagonalization"
+      << setw(15) << "Renew Matrix[sec]"
       << ","
-      << setw(15) << "1step total time" << endl;
+      << setw(15) << "Diagonalization[sec]"
+      << ","
+      << setw(15) << "1step total time[sec]" << endl;
 
   bool is_odd;
 
-  double start_lanczos = omp_get_wtime();
+  double start_eval = omp_get_wtime();
   /*----------------lanczos Algorithm---------------*/
   for (int ls = 0; ls < tri_mat_dim; ls++)
   {
@@ -3845,12 +3865,20 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
         start_int = omp_get_wtime();
         for (int No = 0; No < pair_num; No++)
         {
-          MP_schedule_int_mmzzord(No, tot_Sz[No].V1, tot_Sz[No].V0);
+          // MP_schedule_int_mmzzord(No, tot_Sz[No].V1, tot_Sz[No].V0);
           if (pair_num != 1)
           {
             MP_schedule_int_mmprod(No, tot_Sz[No].V1, tot_Sz[No].V0, tot_Sz[No - 1].V0, tot_Sz[No + 1].V0); // 動作ok
           }
         }
+        start_int_szz = omp_get_wtime();
+        for (int No = 0; No < pair_num; No++)
+        {
+          MP_schedule_int_mmzzord(No, tot_Sz[No].V1, tot_Sz[No].V0);
+        }
+        end_int_szz = omp_get_wtime();
+        time_int_szz = end_int_szz - start_int_szz;
+
         end_int = omp_get_wtime();
         time_intprod = end_int - start_int;
 
@@ -3884,12 +3912,21 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
         start_int = omp_get_wtime();
         for (int No = 0; No < pair_num; No++)
         {
-          MP_schedule_int_mmzzord(No, tot_Sz[No].V0, tot_Sz[No].V1);
+          // MP_schedule_int_mmzzord(No, tot_Sz[No].V0, tot_Sz[No].V1);
           if (pair_num != 1)
           {
             MP_schedule_int_mmprod(No, tot_Sz[No].V0, tot_Sz[No].V1, tot_Sz[No - 1].V1, tot_Sz[No + 1].V1);
           }
         }
+
+        start_int_szz = omp_get_wtime();
+        for (int No = 0; No < pair_num; No++)
+        {
+          MP_schedule_int_mmzzord(No, tot_Sz[No].V0, tot_Sz[No].V1);
+        }
+        end_int_szz = omp_get_wtime();
+        time_int_szz = end_int_szz - start_int_szz;
+
         end_int = omp_get_wtime();
         time_intprod = end_int - start_int;
 
@@ -4065,15 +4102,15 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
       end_1step = omp_get_wtime();
       time_1step_lanczos = end_1step - start_1step;
 
-      // 1e03倍してmillisecに変換する
-      ofs << setw(5) << ls << "," << setw(15) << time_isoprod * 1e03 << ","
-          << setw(15) << time_intprod * 1e03 << ","
-          << setw(15) << time_alpha * 1e03 << ","
-          << setw(15) << time_beta * 1e03 << ","
-          << setw(15) << time_LowMemory * 1e03 << ","
-          << setw(15) << time_renew * 1e03 << ","
-          << setw(15) << time_diagonalize * 1e03 << ","
-          << setw(15) << time_1step_lanczos * 1e03 << endl;
+      ofs << setw(5) << ls << "," << setw(15) << time_isoprod << ","
+          << setw(15) << time_intprod << ","
+          << setw(15) << time_int_szz << ","
+          << setw(15) << time_alpha << ","
+          << setw(15) << time_beta << ","
+          << setw(15) << time_LowMemory << ","
+          << setw(15) << time_renew << ","
+          << setw(15) << time_diagonalize << ","
+          << setw(15) << time_1step_lanczos << endl;
       /*======================================================================*/
 
       /*============================収束状況の確認==============================*/
@@ -4113,11 +4150,10 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
   /*========================配列リソースのリリース part1===================*/
   delete[] eval_even;
   delete[] eval_odd;
-  if (c == 'N')
-  {
-    double end_lanczos = omp_get_wtime();
-    total_lanczos = end_lanczos - start_lanczos;
-  }
+
+  double end_eval = omp_get_wtime();
+  total_eval = end_eval - start_eval;
+  run_time_eigenval = total_eval;
 
   /*======================基底状態の固有ベクトルの計算---------------------*/
   if (c == 'V')
@@ -4237,10 +4273,9 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
     double end_calc_evec = omp_get_wtime();
     // lanczos法で固有ベクトルを求めるのに要した時間
     double total_calc_evec = end_calc_evec - start_calc_evec;
-    cout << "run time of calculate eigen vector : " << total_calc_evec << "[sec]\n";
-    // lanczos法で固有値+固有ベクトルを求めるのに要した時間
-    double end_lanczos = omp_get_wtime();
-    total_lanczos = end_lanczos - start_lanczos;
+    run_time_eigenvec = total_calc_evec;
+
+    run_time_total += run_time_eigenval + run_time_eigenvec; // hamiltonianの行列要素の計算から固有値、ベクトル計算までに要した時間
   }
   /*========================配列リソースのリリース part2===================*/
   delete[] alpha;
@@ -4267,7 +4302,7 @@ double Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std
     tot_Sz[No].V0 = new double *[2];
     tot_Sz[No].V1 = new double *[2];
   }
-  return total_lanczos;
+  run_time_lanczos = run_time_eigenval + run_time_eigenvec;
 };
 
 void Subsystem_Sz::calc_beta_evenstep(const int tri_mat_dim, const int ls, double *alpha, double *beta)
@@ -4405,7 +4440,6 @@ void Subsystem_Sz::int_mmzzord(const int No, double **V0, double **V1)
 
 void Subsystem_Sz::MP_int_mmzzord(const int No, double **V0, double **V1)
 {
-  // #pragma omp parallel for
   for (int id = 0; id < system_num - 2; id++)
   {
     tot_Sz[No].H_int[id].MP_int_zz_mmprod(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].H_int[id].sz_A, tot_Sz[No].H_int[id].sz_B, V0, V1); // 動作OK
@@ -4414,12 +4448,33 @@ void Subsystem_Sz::MP_int_mmzzord(const int No, double **V0, double **V1)
 
 void Subsystem_Sz::MP_schedule_int_mmzzord(const int No, double **V0, double **V1)
 {
-  // #pragma omp parallel for
   for (int id = 0; id < system_num - 2; id++)
   {
     tot_Sz[No].H_int[id].MP_schedule_int_zz_mmprod(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].H_int[id].sz_A, tot_Sz[No].H_int[id].sz_B, V0, V1); // 動作OK
   }
 }
+
+// void Subsystem_Sz::MP_schedule_int_mmzzord(const int No, double **V0, double **V1)
+// {
+//   int dim_A = tot_Sz[No].bm_A_size;
+//   int dim_B = tot_Sz[No].bm_B_size;
+//   int row, col, id;
+//   double mat_val, sz_A_i, sz_B_j;
+//   double bond;
+// #pragma omp parallel for private(col, id, bond, mat_val) schedule(runtime)
+//   for (row = 0; row < dim_A; row++)
+//   {
+//     for (col = 0; col < dim_B; col++)
+//     {
+//       mat_val = V0[row][col];
+//       for (id = 0; id < system_num - 2; id++)
+//       {
+//         bond = tot_Sz[No].H_int[id].J.val(0);
+//         V1[row][col] += 0.25 * bond * tot_Sz[No].H_int[id].sz_A[row] * tot_Sz[No].H_int[id].sz_B[col] * mat_val;
+//       }
+//     }
+//   }
+// }
 
 double Subsystem_Sz::mm_ddot(const int row_dim, const int col_dim, double **V0, double **V1)
 {
@@ -4937,17 +4992,12 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
     for (int up = start_up_spin; up <= end_up_spin; up++)
     {
       string dir_time = dir_output_time + to_string(up) + ".csv";
-      double start_subsystem = omp_get_wtime();
       Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, up);
       H.sub_space_check();
       H.set_system_info();
       H.sub_hamiltonian();
-      double lanczos_time = H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time);
-      double end_subsystem = omp_get_wtime();
+      H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time);
       cout << H << endl;
-      cout << "Total run time       = " << end_subsystem - start_subsystem << "[sec]" << endl;
-      cout << "lanczos run time     = " << lanczos_time << endl;
-
       Magnetization.push_back(H.mag);
       eigen_values.push_back(H.eigen_value);
     }
@@ -4958,21 +5008,11 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
     for (int up = start_up_spin; up <= end_up_spin; up++)
     {
       string dir_time = dir_output_time + to_string(up) + ".csv";
-      double start_subsystem = omp_get_wtime();
       Subsystem_Sz H(sys_num, sys_site_A, sys_site_B, file, up);
-      double start_hamiltonian = omp_get_wtime();
       H.sub_space_check();
       H.set_system_info();
       H.sub_hamiltonian();
-      double end_hamiltonian = omp_get_wtime();
-      double time_hamiltonian = end_hamiltonian - start_hamiltonian;
-      double lanczos_time = H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time, 'V');
-      double end_subsystem = omp_get_wtime();
-      double subsystem_time = end_subsystem - start_subsystem;
-      cout << H << endl;
-      cout << "Total run time       = " << end_subsystem - start_subsystem << "[sec]" << endl;
-      cout << "Hamiltonian run time = " << time_hamiltonian << "[sec]" << endl;
-      cout << "lanczos run time     = " << lanczos_time << "[sec]" << endl;
+      H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time, 'V');
 
       Magnetization.push_back(H.mag);
       eigen_values.push_back(H.eigen_value);
@@ -4982,19 +5022,10 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
       string dir_sxx = dir_output_spin_sxx_rel + to_string(up) + ".csv";
       string dir_szz = dir_output_spin_szz_rel + to_string(up) + ".csv";
 
-      double start_calc_sxx_rel = omp_get_wtime();
       H.calc_sxx_rel(total_site_num, dir_sxx);
-      double end_calc_sxx_rel = omp_get_wtime();
-      double calc_sxx_rel_time = end_calc_sxx_rel - start_calc_sxx_rel;
-      cout << "TIme calc sxx rel / total_time = "
-           << calc_sxx_rel_time * 100 / subsystem_time << "%" << endl;
-
-      double start_calc_szz_rel = omp_get_wtime();
       H.calc_szz_rel(total_site_num, dir_szz);
-      double end_calc_szz_rel = omp_get_wtime();
-      double calc_szz_rel_time = end_calc_szz_rel - start_calc_szz_rel;
-      cout << "Time calc szz rel / total_time  = "
-           << calc_szz_rel_time * 100 / subsystem_time << "%" << endl;
+
+      cout << H << endl;
     }
   }
   // 磁場の規格化
@@ -5143,7 +5174,7 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
 // spin-spin相関の計算<Ψ|S_i^zS_j^z|Ψ>(メモリアクセス回数を配慮)
 void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
 {
-  double start_szz, end_szz, total_szz;
+  double start_szz, end_szz;
   start_szz = omp_get_wtime();
   // 各サイトごとのspin相関の値を記録す料の配列の確保
   int dim = max(tot_site_A, tot_site_B);
@@ -5205,7 +5236,7 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
     }
   }
   end_szz_A = omp_get_wtime();
-  time_szz_A = end_szz_A - start_szz_A;
+  run_time_szz_A_rel = end_szz_A - start_szz_A;
 
   for (int i = 0; i < tot_site_A; i++)
   {
@@ -5219,7 +5250,7 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
   fprintf(fp, "i in B   j in B   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
 
-  double start_szz_B, end_szz_B, time_szz_B;
+  double start_szz_B, end_szz_B;
   start_szz_B = omp_get_wtime();
   // 部分空間についてのloop
   for (No = 0; No < pair_num; No++)
@@ -5260,7 +5291,7 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
     }
   }
   end_szz_B = omp_get_wtime();
-  time_szz_B = end_szz_B - start_szz_B;
+  run_time_szz_B_rel = end_szz_B - start_szz_B;
 
   for (int i = 0; i < tot_site_B; i++)
   {
@@ -5274,7 +5305,7 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
   fprintf(fp, "i in A   j in B   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
 
-  double start_szz_AB, end_szz_AB, time_szz_AB;
+  double start_szz_AB, end_szz_AB;
   start_szz_AB = omp_get_wtime();
   // 部分空間についてのloop
   for (No = 0; No < pair_num; No++)
@@ -5318,13 +5349,9 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
     }
   }
   end_szz_AB = omp_get_wtime();
-  time_szz_AB = end_szz_AB - start_szz_AB;
+  run_time_szz_AB_rel = end_szz_AB - start_szz_AB;
   end_szz = omp_get_wtime();
-  total_szz = end_szz - start_szz;
-  printf("run time of szz(Total)      = %f [sec]\n", total_szz);
-  printf("  - run time of szz(i, j in A)      = %f [sec]\n", time_szz_A);
-  printf("  - run time of szz(i, j in B)      = %f [sec]\n", time_szz_B);
-  printf("  - run time of szz(i in A, j in B) = %f [sec]\n", time_szz_AB);
+  run_time_szz_rel = end_szz - start_szz;
 
   for (int i = 0; i < tot_site_A; i++)
   {
@@ -5359,7 +5386,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
   FILE *fp;
   fp = fopen(dir_output.c_str(), "w");
 
-  double start_sxx_A, end_sxx_A, time_sxx_A;
+  double start_sxx_A, end_sxx_A;
   fprintf(fp, "i in A   j in A   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
 
@@ -5410,7 +5437,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
     delete[] X;
   }
   end_sxx_A = omp_get_wtime();
-  time_sxx_A = end_sxx_A - start_sxx_A;
+  run_time_sxx_A_rel = end_sxx_A - start_sxx_A;
 
   for (int i = 0; i < tot_site_A; i++)
   {
@@ -5423,7 +5450,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
   MP_schedule_vec_init(dim2, rel_ij);
   fprintf(fp, "i in B   j in B   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
-  double start_sxx_B, end_sxx_B, time_sxx_B;
+  double start_sxx_B, end_sxx_B;
   start_sxx_B = omp_get_wtime();
   // 部分空間についてのloop
   for (No = 0; No < pair_num; No++)
@@ -5474,7 +5501,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
     delete[] X;
   }
   end_sxx_B = omp_get_wtime();
-  time_sxx_B = end_sxx_B - start_sxx_B;
+  run_time_sxx_B_rel = end_sxx_B - start_sxx_B;
 
   for (int i = 0; i < tot_site_B; i++)
   {
@@ -5487,7 +5514,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
   MP_schedule_vec_init(dim2, rel_ij);
   fprintf(fp, "i in A   j in B   rel_ij\n");
   fprintf(fp, "---------------------------------------------\n");
-  double start_sxx_AB, end_sxx_AB, time_sxx_AB;
+  double start_sxx_AB, end_sxx_AB;
   start_sxx_AB = omp_get_wtime();
 
   for (int No = 0; No < pair_num; No++)
@@ -5553,13 +5580,9 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
     }
   }
   end_sxx_AB = omp_get_wtime();
-  time_sxx_AB = end_sxx_AB - start_sxx_AB;
+  run_time_sxx_AB_rel = end_sxx_AB - start_sxx_AB;
   end_sxx = omp_get_wtime();
-  total_sxx = end_sxx - start_sxx;
-  printf("run time of sxx(Total)      = %f [sec]\n", total_sxx);
-  printf("  - run time of sxx(i, j in A)      = %f [sec]\n", time_sxx_A);
-  printf("  - run time of sxx(i, j in B)      = %f [sec]\n", time_sxx_B);
-  printf("  - run time of sxx(i in A, j in B) = %f [sec]\n", time_sxx_AB);
+  run_time_sxx_rel = end_sxx - start_sxx;
 
   for (int i = 0; i < tot_site_A; i++)
   {
@@ -5797,470 +5820,45 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
 //   delete[] rel_ij;
 // }
 
-// spin-spin相関の計算<Ψ|S_i^zS_j^z|Ψ>(メモリアクセス回数を配慮していないversion)
-// void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
-// {
-//   double rel_ij; // サイトi,jの相関係数
-//   bool is_up_spin_i, is_up_spin_j;
-//   int sign; // S_i^zS_j^z|Ψ>の符号を代入する sign = ±1
-//   double evec_val;
-//   // ofstream ofs(dir_output);
-//   FILE *fp;
-//   fp = fopen(dir_output.c_str(), "w");
-
-//   // siteについてのloop(はじめにどのサイト同士の相関係数を計算するかを指定する)
-//   //[1]i,jがともに部分系Aに属するサイトの場合
-//   // ofs << "====================================================================\n";
-//   // ofs << "Calculation of <S_i^z S_j^z>\n";
-
-//   // ofs
-//   //     << setw(3) << "i∈A"
-//   //     << ", "
-//   //     << "j∈A"
-//   //     << ","
-//   //     << setw(18) << "rel_ij"
-//   //     << ","
-//   //     << "rel_ij x 5.0"
-//   //     << "\n ";
-//   // ofs
-//   //     << "---------------------------------------------\n";
-
-//   fprintf(fp, "i in A   j in A   rel_ij\n");
-//   fprintf(fp, "---------------------------------------------\n");
-
-//   int i, j,No,n,m, state_num_of_A,state_num_of_B;
-//   double start_szz_AA, end_szz_AA;
-//   start_szz_AA = omp_get_wtime();
-// #pragma omp parallel for private(i, j,No,n,m, is_up_spin_i, is_up_spin_j, sign, evec_val, state_num_of_A) reduction(+: rel_ij) schedule(runtime)
-//   for (int i = 0; i < tot_site_A; i++)
-//   {
-//     for (j = i; j < tot_site_A; j++)
-//     {
-//       rel_ij = 0.;
-//       for (int No = 0; No < pair_num; No++)
-//       {
-
-//         // 状態についてのloop
-//         for (n = 0; n < tot_Sz[No].bm_A_size; n++)
-//         {
-//           for (m = 0; m < tot_Sz[No].bm_B_size; m++)
-//           {
-//             // 状態の用意
-//             // スピン演算子は部分系AのサイトについてのものなのでbitはAのものだけを用意すれば良い
-//             int state_num_of_A = tot_Sz[No].bm_A[n];
-//             boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
-
-//             // i,j番目のスピンの向きを確認
-//             is_up_spin_i = ket_A.test(i);
-//             is_up_spin_j = ket_A.test(j);
-
-//             if (is_up_spin_i == is_up_spin_j)
-//               sign = 1;
-//             else
-//               sign = -1;
-
-//             evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
-//             rel_ij += sign * 0.25 * evec_val * evec_val;
-//           }
-//         }
-//       }
-//       // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
-//       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
-//     }
-//   }
-//   end_szz_AA = omp_get_wtime();
-//   cout << "run time of szz(i, j in A) = " << end_szz_AA - start_szz_AA << "[sec]\n";
-
-//   // ofs << "---------------------------------------------\n";
-//   fprintf(fp, "---------------------------------------------\n");
-//   //[2]i,jがともに部分系Bに属するサイトの場合
-//   // ofs << setw(3) << "i∈B"
-//   //     << ", "
-//   //     << "j∈B"
-//   //     << ","
-//   //     << setw(18) << "rel_ij"
-//   //     << ","
-//   //     << "rel_ij x 5.0"
-//   //     << "\n";
-//   // ofs << "---------------------------------------------\n";
-//   fprintf(fp, "i in B   j in B   rel_ij\n");
-//   fprintf(fp, "---------------------------------------------\n");
-
-//   double start_szz_BB, end_szz_BB;
-//   start_szz_BB = omp_get_wtime();
-// #pragma omp parallel for private(i, j,No,n,m, is_up_spin_i, is_up_spin_j, sign, evec_val, state_num_of_B) reduction(+: rel_ij) schedule(runtime)
-//   for (int i = 0; i < tot_site_B; i++)
-//   {
-//     for (j = i; j < tot_site_B; j++)
-//     {
-//       rel_ij = 0.;
-//       for (No = 0; No < pair_num; No++)
-//       {
-//         // 状態についてのloop
-//         for (n = 0; n < tot_Sz[No].bm_A_size; n++)
-//         {
-//           for (m = 0; m < tot_Sz[No].bm_B_size; m++)
-//           {
-//             // 状態の用意
-//             // スピン演算子は部分系BのサイトについてのものなのでbitはBのものだけを用意すれば良い
-//             int state_num_of_B = tot_Sz[No].bm_B[m];
-//             boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
-
-//             // i,j番目のスピンの向きを確認
-//             is_up_spin_i = ket_B.test(i);
-//             is_up_spin_j = ket_B.test(j);
-
-//             if (is_up_spin_i == is_up_spin_j)
-//               sign = 1;
-//             else
-//               sign = -1;
-
-//             evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
-//             rel_ij += sign * 0.25 * evec_val * evec_val;
-//           }
-//         }
-//       }
-//       // ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
-//       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
-//     }
-//   }
-
-//   end_szz_BB = omp_get_wtime();
-//   cout << "run time of szz(i, j in B) = " << end_szz_BB - start_szz_BB << "[sec]\n";
-//   //[3]2サイトがそれぞれ部分系A,Bに属する場合
-//   // ofs << "---------------------------------------------\n";
-//   // ofs << setw(3) << "i∈A"
-//   //     << ", "
-//   //     << "j∈B"
-//   //     << ","
-//   //     << setw(18) << "rel_ij\n";
-//   // ofs << "---------------------------------------------\n";
-//   fprintf(fp, "i in A   j in B   rel_ij\n");
-//   fprintf(fp, "---------------------------------------------\n");
-
-//   double start_szz_AB, end_szz_AB;
-//   start_szz_AB = omp_get_wtime();
-// #pragma omp parallel for private(i, j,No,n,m, is_up_spin_i, is_up_spin_j, sign, evec_val, state_num_of_B) reduction(+:rel_ij) schedule(runtime)
-//   for (int i = 0; i < tot_site_A; i++)
-//   {
-//     for (j = 0; j < tot_site_B; j++)
-//     {
-//       rel_ij = 0.;
-//       // 部分空間についてのloop
-//       for (No = 0; No < pair_num; No++)
-//       {
-//         // 状態についてのloop
-//         for (n = 0; n < tot_Sz[No].bm_A_size; n++)
-//         {
-//           // 状態の用意
-//           int state_num_of_A = tot_Sz[No].bm_A[n];
-//           boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
-//           // i番目のスピンの向きを確認
-//           is_up_spin_i = ket_A.test(i);
-//           for (m = 0; m < tot_Sz[No].bm_B_size; m++)
-//           {
-//             int state_num_of_B = tot_Sz[No].bm_B[m];
-//             boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
-//             // j番目のスピンの向きを確認
-//             is_up_spin_j = ket_B.test(j);
-
-//             if (is_up_spin_i == is_up_spin_j)
-//               sign = 1;
-//             else
-//               sign = -1;
-
-//             evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
-//             rel_ij += sign * 0.25 * evec_val * evec_val;
-//           }
-//         }
-//       }
-//       // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
-//       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
-//     }
-//   }
-//   end_szz_AB = omp_get_wtime();
-//   cout << "run time of szz(i in A , j in B) = " << end_szz_AB - start_szz_AB << "[sec]\n";
-//   // ofs << "====================================================================\n";
-//   // ofs.close();
-//   fclose(fp);
-// };
-
-// void Subsystem_Sz::calc_sxx_rel(const int site_num, string dir_output)
-// {
-//   double rel_ij; // サイトi,jの相関係数
-//   bool is_up_spin_i, is_up_spin_j;
-//   double evec_val;
-//   FILE *fp;
-//   fp = fopen(dir_output.c_str(), "w");
-//   // ofstream ofs(dir_output);
-//   // ofs << "====================================================================\n";
-//   // ofs << "Calculation of <S_i^x S_j^x>\n";
-
-//   //[1]i,jがともに部分系Aに属するサイトの場合
-//   // ofs << setw(3) << "i∈A"
-//   //     << ", "
-//   //     << "j∈A"
-//   //     << ","
-//   //     << setw(18) << "rel_ij"
-//   //     << ","
-//   //     << "rel_ij x 5.0"
-//   //     << "\n ";
-//   // ofs
-//   //     << "---------------------------------------------\n";
-
-//   fprintf(fp, "i in A   j in A   rel_ij\n");
-//   fprintf(fp, "---------------------------------------------\n");
-
-//   int i, j;
-//   for (int i = 0; i < tot_site_A; i++)
-//   {
-//     for (j = i; j < tot_site_A; j++) // j=0 startにすることでS_i^+Sj-とS_i^-とS_j^+を一度に計算することができる
-//     {
-//       rel_ij = 0.;
-//       for (int No = 0; No < pair_num; No++)
-//       {
-//         // 状態についてのloop(|スピン状態> = |n>|m>)
-//         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
-//         {
-// #pragma omp parallel for reduction(+ : rel_ij) schedule(runtime)
-//           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
-//           {
-//             // 状態の用意
-//             // スピン演算子は部分系AのサイトについてのものなのでbitはAのものだけを用意すれば良い
-//             int state_num_of_A = tot_Sz[No].bm_A[n];
-//             boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
-
-//             // i,j番目のスピンの向きを確認
-//             is_up_spin_i = ket_A.test(i); // bitが1(up)ならtrue、そうでないならfalse
-//             is_up_spin_j = ket_A.test(j);
-
-//             if (is_up_spin_i != is_up_spin_j)
-//             {
-//               // boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
-//               ket_A.flip(i);
-//               ket_A.flip(j);
-
-//               int n_trans = (int)(ket_A.to_ulong());  //|n>の遷移先を調べる
-//               int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
-//               rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
-//             }
-
-//             // i番目のスピンがdownかつj番目のスピンがupの場合
-//             // if (is_up_spin_i == false && is_up_spin_j == true)
-//             // {
-//             //   boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
-//             //   ket_A1.flip(i);
-//             //   ket_A1.flip(j);
-
-//             //   int n_trans = (int)(ket_A1.to_ulong()); //|n>の遷移先を調べる
-//             //   int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
-//             //   rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
-//             // }
-
-//             // // i番目のスピンがupかつj番目のスピンがdownの場合
-//             // if (is_up_spin_i == true && is_up_spin_j == false)
-//             // {
-//             //   boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
-//             //   ket_A1.flip(i);
-//             //   ket_A1.flip(j);
-
-//             //   int n_trans = (int)(ket_A1.to_ulong()); //|n>の遷移先を調べる
-//             //   int bm_ctr = tot_Sz[No].gbm_A[n_trans]; // |n>の遷移先が部分空間で何番目のスピン状態かを調べる
-//             //   rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[bm_ctr][m] * tot_Sz[No].Eig.eigen_mat[n][m];
-//             // }
-//           }
-//         }
-//       }
-//       // ofs << setw(3) << i << ", " << j << ", " << setw(18) << setprecision(15) << rel_ij << endl;
-//       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
-//     }
-//   }
-//   // ofs << "---------------------------------------------\n";
-//   fprintf(fp, "---------------------------------------------\n");
-//   //[2]i,jがともに部分系Bに属するサイトの場合
-//   // ofs
-//   //     << setw(3) << "i∈B"
-//   //     << ", "
-//   //     << "j∈B"
-//   //     << ","
-//   //     << setw(18) << "rel_ij"
-//   //     << ","
-//   //     << "rel_ij x 5.0"
-//   //     << "\n";
-//   // ofs << "---------------------------------------------\n";
-//   fprintf(fp, "i in B   j in B   rel_ij\n");
-//   fprintf(fp, "---------------------------------------------\n");
-
-//   for (int i = 0; i < tot_site_B; i++)
-//   {
-//     for (j = i; j < tot_site_B; j++)
-//     {
-//       rel_ij = 0.;
-//       for (int No = 0; No < pair_num; No++)
-//       {
-//         // 状態についてのloop
-//         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
-//         {
-// #pragma omp parallel for reduction(+ : rel_ij) schedule(runtime)
-//           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
-//           {
-//             // 状態の用意
-//             // スピン演算子は部分系BのサイトについてのものなのでbitはBのものだけを用意すれば良い
-//             int state_num_of_B = tot_Sz[No].bm_B[m];
-//             boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
-
-//             // i,j番目のスピンの向きを確認
-//             is_up_spin_i = ket_B.test(i);
-//             is_up_spin_j = ket_B.test(j);
-
-//             if (is_up_spin_i != is_up_spin_j)
-//             {
-//               // boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
-//               ket_B.flip(i);
-//               ket_B.flip(j);
-
-//               int m_trans = (int)(ket_B.to_ulong());  //|m>の遷移先を調べる
-//               int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
-//               rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
-//             }
-
-//             // i番目のスピンがdownかつj番目のスピンがupの場合
-//             // if (is_up_spin_i == false && is_up_spin_j == true)
-//             // {
-//             //   boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
-//             //   ket_B1.flip(i);
-//             //   ket_B1.flip(j);
-
-//             //   int m_trans = (int)(ket_B1.to_ulong()); //|m>の遷移先を調べる
-//             //   int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
-//             //   rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
-//             // }
-
-//             // // i番目のスピンがupかつj番目のスピンがdownの場合
-//             // if (is_up_spin_i == true && is_up_spin_j == false)
-//             // {
-//             //   boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
-//             //   ket_B1.flip(i);
-//             //   ket_B1.flip(j);
-
-//             //   int m_trans = (int)(ket_B1.to_ulong()); //|m>の遷移先を調べる
-//             //   int bm_ctr = tot_Sz[No].gbm_B[m_trans]; //|m>の遷移先が部分空間で何番目のスピン状態かを調べる
-//             //   rel_ij += 0.25 * tot_Sz[No].Eig.eigen_mat[n][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
-//             // }
-//           }
-//         }
-//       }
-//       // ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
-//       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
-//     }
-//   }
-
-//   //[3]2サイトがそれぞれ部分系A,Bに属する場合
-//   // ofs << "---------------------------------------------\n";
-//   // ofs << setw(3) << "i∈A"
-//   //     << ", "
-//   //     << "j∈B"
-//   //     << ","
-//   //     << setw(18) << "rel_ij\n";
-//   // ofs << "---------------------------------------------\n";
-//   fprintf(fp, "i in A   j in B   rel_ij\n");
-//   fprintf(fp, "---------------------------------------------\n");
-//   for (int i = 0; i < tot_site_A; i++)
-//   {
-//     for (j = 0; j < tot_site_B; j++)
-//     {
-//       rel_ij = 0.;
-//       // 部分空間についてのloop
-//       for (int No = 0; No < pair_num; No++)
-//       {
-//         // 状態についてのloop
-//         for (int n = 0; n < tot_Sz[No].bm_A_size; n++)
-//         {
-// #pragma omp parallel for reduction(+ : rel_ij) schedule(runtime)
-//           for (int m = 0; m < tot_Sz[No].bm_B_size; m++)
-//           {
-//             // 状態の用意
-//             int state_num_of_A = tot_Sz[No].bm_A[n];
-//             int state_num_of_B = tot_Sz[No].bm_B[m];
-//             boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
-//             boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
-
-//             // i,j番目のスピンの向きを確認
-//             is_up_spin_i = ket_A.test(i);
-//             is_up_spin_j = ket_B.test(j);
-
-//             // i,j番目のスピンがdownの場合
-//             if (No > 0)
-//             {
-//               if (is_up_spin_i == false && is_up_spin_j == true)
-//               {
-//                 // boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
-//                 // boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
-//                 ket_A.flip(i);
-//                 ket_B.flip(j);
-
-//                 int n_trans = (int)(ket_A.to_ulong());
-//                 int m_trans = (int)(ket_B.to_ulong());
-
-//                 int bn_ctr = tot_Sz[No - 1].gbm_A[n_trans];
-//                 int bm_ctr = tot_Sz[No - 1].gbm_B[m_trans];
-
-//                 rel_ij += 0.25 * tot_Sz[No - 1].Eig.eigen_mat[bn_ctr][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
-//               }
-//             }
-
-//             if (No < pair_num - 1)
-//             {
-//               if (is_up_spin_i == true && is_up_spin_j == false)
-//               {
-
-//                 // boost::dynamic_bitset<> ket_A1(tot_site_A, state_num_of_A);
-//                 // boost::dynamic_bitset<> ket_B1(tot_site_B, state_num_of_B);
-//                 ket_A.flip(i);
-//                 ket_B.flip(j);
-
-//                 int n_trans = (int)(ket_A.to_ulong());
-//                 int m_trans = (int)(ket_B.to_ulong());
-
-//                 int bn_ctr = tot_Sz[No + 1].gbm_A[n_trans];
-//                 int bm_ctr = tot_Sz[No + 1].gbm_B[m_trans];
-
-//                 rel_ij += 0.25 * tot_Sz[No + 1].Eig.eigen_mat[bn_ctr][bm_ctr] * tot_Sz[No].Eig.eigen_mat[n][m];
-//               }
-//             }
-//           }
-//         }
-//       }
-//       // ofs << setw(3) << i << ", " << j << "," << setw(18) << setprecision(15) << rel_ij << " , " << setprecision(3) << rel_ij * 5.0 << endl;
-//       fprintf(fp, "%d , %d , %f\n", i, j, rel_ij);
-//     }
-//   }
-//   // ofs << "====================================================================\n";
-//   // ofs.close();
-//   fclose(fp);
-// };
-
 /*------------------------------標準出力関係------------------------------*/
 string Subsystem_Sz::to_string() const
 {
   ostringstream s;
   s << "\n\n";
-  s << "==================================\n";
+  s << "====================================================================\n";
   s << "[Info of Subsystem_Sz]\n";
-  s << "----------------------------------\n";
+  s << "--------------------------------------------------------------------\n";
   s << "- system_num       : " << system_num << endl;
   s << "- site num of A    : " << tot_site_A << endl;
   s << "- site num of B    : " << tot_site_B << endl;
   s << "- magnetization    : " << mag << endl;
   s << "- No of subspace   : " << pair_num << endl;
-  s << "Total lanczos step : " << ls_count << endl;
+  s << "- Total lanczos step : " << ls_count << endl;
   s << "- lanczos method   : ";
   if (ls_check == true)
     s << "success" << endl;
   else
     s << "failure" << endl;
-  s << "Eigen value of Groundstate : " << setprecision(16) << eigen_value << endl;
-  s << "==================================\n";
+  s << "- Eigen value of Groundstate : " << setprecision(16) << eigen_value << endl;
+  s << "--------------------------------------------------------------------\n";
+  s << "[Info of Run Time]\n";
+  s << "--------------------------------------------------------------------\n";
+  s << "- Total               : " << run_time_total << "[sec]\n";
+  s << "   |_ Hamiltonian     : " << run_time_hamiltonian << "[sec]\n";
+  s << "   |_ Lanczos         : " << run_time_lanczos << "[sec]\n";
+  s << "       |_ eigen value : " << run_time_eigenval << "[sec]\n";
+  s << "       |_ eigen vec   : " << run_time_eigenvec << "[sec]\n";
+  s << endl;
+  s << "- <SxSx> Total        : " << setprecision(5) << run_time_sxx_rel << "[sec]\n";
+  s << "   |_ (i, j) in A     : " << run_time_sxx_A_rel << "[sec]\n";
+  s << "   |_ (i, j) in B     : " << run_time_sxx_B_rel << "[sec]\n";
+  s << "   |_i in A, j in B   : " << run_time_sxx_AB_rel << "[sec]\n";
+  s << endl;
+  s << "- <SzSz> Total        : " << run_time_szz_rel << "[sec]\n";
+  s << "   |_ (i, j) in A     : " << run_time_szz_A_rel << "[sec]\n";
+  s << "   |_ (i, j) in B     : " << run_time_szz_B_rel << "[sec]\n";
+  s << "   |_i in A, j in B   : " << run_time_szz_AB_rel << "[sec]\n";
+  s << "====================================================================\n";
 
   return s.str();
 }

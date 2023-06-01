@@ -39,10 +39,11 @@ int main(int argc, char *argv[])
         dir_output_spin_sxx_rel = argv[11];
         dir_output_spin_szz_rel = argv[12];
 
-        for (int i = 0; i < 13; i++)
-        {
-            cout << "argv[" << i << "] = " << argv[i] << endl;
-        }
+        cout << "input : scuccess\n";
+        cout << "- File of eigen value : " << dir_output_eval << endl;
+        cout << "- File of time        : " << dir_output_time << endl;
+        cout << "- Dir of <SxSx>       : " << dir_output_spin_sxx_rel << endl;
+        cout << "- Dir of <SzSz>       : " << dir_output_spin_szz_rel << endl;
     }
     else
     {

@@ -38,7 +38,21 @@ public:
     int ls_count;  // 収束までに要したstep数を表示する
     bool ls_check; // 指定した反復回数内で計算が収束したかを表すための変数
     double eigen_value;
-    // MEIGEN Eig; //[Note]これもtot_Szオブジェクトごとに用意しておいたほうがいいかもしれない
+    double run_time_total;       // Hamiltonianの行列要素計算からlanczos法での固有値、固有ベクトルの計算に要した時間
+    double run_time_hamiltonian; // Hamiltonianの行列要素計算に要した時間
+    double run_time_lanczos;     // lanczos法で固有値計算とベクトル計算に要した時間
+    double run_time_eigenval;    // lanczos法で固有値計算に要した時間
+    double run_time_eigenvec;    // lanczos法で固有ベクトルの計算に要した時間
+    /*spin相関計算関連*/
+    double run_time_szz_rel;    // z成分のspin相関の計算に要したtotal時間
+    double run_time_szz_A_rel;  // i,j in lattice Aでのz成分のspin相関の計算に要した時間
+    double run_time_szz_B_rel;  // i,j in lattice Bでのz成分のspin相関の計算に要した時間
+    double run_time_szz_AB_rel; // i in A,j in Bでのz成分のspin相関の計算に要した時間
+
+    double run_time_sxx_rel;    // x成分のspin相関の計算に要したtotal時間
+    double run_time_sxx_A_rel;  // i,j in lattice Aでのx成分のspin相関の計算に要した時間
+    double run_time_sxx_B_rel;  // i,j in lattice Bでのx成分のspin相関の計算に要した時間
+    double run_time_sxx_AB_rel; // i in A,j in Bでのx成分のspin相関の計算に要した時間
 
     // コンストラクタ
     Subsystem_Sz(int sys_num, int site_A, int site_B, std::vector<std::string> &file, int up);
@@ -99,7 +113,7 @@ public:
     void MP_sub_lanczos(const int tri_mat_dim, char c = 'N', char info_ls = 'n');
     double MP_sub_lanczos_timetest(const int tri_mat_dim, std::string output_filename, char c = 'N', char info_ls = 'n'); // lanczos法で収束に要した時間を返す
     void MP_schedule_sub_lanczos(const int tri_mat_dim, char c = 'N', char info_ls = 'n');
-    double MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::string dir_output_time, char c = 'N', char info_ls = 'n'); // lanczos法で収束に要した時間を変えす
+    void MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::string dir_output_time, char c = 'N', char info_ls = 'n'); // lanczos法で収束に要した時間を変えす
 
     /*------------------------mm系関数------------------------*/
     void iso_mmprod(const int No, double **V0, double **V1);                                     // Iso systemの行列-行列積

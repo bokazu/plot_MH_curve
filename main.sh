@@ -46,7 +46,7 @@ for dir in "${dir_list[@]}"; do
         dir_output_sxx_rel="./output/${LATTICE}/${SITENUM}site/$param_dir/sxx_rel/spin_sxx_rel"
         dir_output_szz_rel="./output/${LATTICE}/${SITENUM}site/$param_dir/szz_rel/spin_szz_rel"
 	dir_output_eval="./output/${LATTICE}/${SITENUM}site/$param_dir/eigen_val.csv"
-	dir_output_time="./output/${LATTICE}/${SITENUM}site/$param_dir/time/time_info"
+	dir_output_time="./output/${LATTICE}/${SITENUM}site/$param_dir/time/time_info2"
 
         #===================コードを実行する==============================           
         ./build/main_app "$var2" "$var3" "$var4" "$var5" "$var6" "$var7" "$var8" "$var9" "$dir_output_eval" "$dir_output_time" "$dir_output_sxx_rel" "$dir_output_szz_rel"
