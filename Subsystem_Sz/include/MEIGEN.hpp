@@ -68,6 +68,7 @@ public:
     double **data() { return eigen_mat; }
     // 固有ベクトルの値を初期化する
     void vec_init();
+    void MP_scheduled_evec_init();
 
     // 固有ベクトルの要素数を変更し、初期化する
     void evec_elem(int m, int n);

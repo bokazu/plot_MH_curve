@@ -2997,7 +2997,7 @@ double Subsystem_Sz::MP_sub_lanczos_timetest(const int tri_mat_dim, std::string 
 
   ls_count = 0;
   double eps = 1.0;
-  double err = 1.0e-15;
+  double err = 1.0e-14;
   bool err_checker = true;
 
   // 各関数の処理に要する時間を各stepごとに書き出すファイルの設定
@@ -3298,6 +3298,7 @@ double Subsystem_Sz::MP_sub_lanczos_timetest(const int tri_mat_dim, std::string 
           sub_diag[ls] = 0.;
           if (c == 'N')
           {
+            cout << "L3301 : alpha = " << alpha[0] << endl;
             // 固有値のみを計算する場合
             start_diagonalize = omp_get_wtime();
             info =
@@ -3309,6 +3310,7 @@ double Subsystem_Sz::MP_sub_lanczos_timetest(const int tri_mat_dim, std::string 
           else
           {
             // 固有ベクトルのみを計算する場合
+            cout << "L3312 : alpha = " << alpha[0] << endl;
             start_diagonalize = omp_get_wtime();
             info =
                 LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
@@ -3326,12 +3328,29 @@ double Subsystem_Sz::MP_sub_lanczos_timetest(const int tri_mat_dim, std::string 
         }
         else
         {
-          start_diagonalize = omp_get_wtime();
-          int info =
-              LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
-                            sub_diag, tri_diag_evec, ls + 1);
-          end_diagonalize = omp_get_wtime();
-          time_diagonalize = end_diagonalize - start_diagonalize;
+          if (c == 'N')
+          {
+            // 固有値のみを計算する場合
+            cout << "L3334 : alpha = " << alpha[0] << endl;
+            start_diagonalize = omp_get_wtime();
+            info =
+                LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls, diag,
+                              sub_diag, tri_diag_evec, ls);
+            end_diagonalize = omp_get_wtime();
+            time_diagonalize = end_diagonalize - start_diagonalize;
+          }
+          else
+          {
+            // 固有ベクトルを計算する場合
+            cout << "L3343 : alpha = " << alpha[0] << endl;
+            start_diagonalize = omp_get_wtime();
+            info =
+                LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls, diag,
+                              sub_diag, tri_diag_evec, ls);
+            end_diagonalize = omp_get_wtime();
+            time_diagonalize = end_diagonalize - start_diagonalize;
+          }
+
           if (info != 0)
           {
             std::cout << "@ls = " << ls
@@ -3372,6 +3391,7 @@ double Subsystem_Sz::MP_sub_lanczos_timetest(const int tri_mat_dim, std::string 
           }
           else
           { // 固有ベクトルも計算する場合
+            cout << "L3392 : alpha = " << alpha[0] << endl;
             start_diagonalize = omp_get_wtime();
             info =
                 LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
@@ -3402,6 +3422,7 @@ double Subsystem_Sz::MP_sub_lanczos_timetest(const int tri_mat_dim, std::string 
           else
           {
             // 固有ベクトルを計算する場合
+            cout << "L3424 : alpha = " << alpha[0] << endl;
             start_diagonalize = omp_get_wtime();
             info =
                 LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
@@ -3681,7 +3702,7 @@ void Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::
       }
 
       // 0初期化
-      tot_Sz[No].Eig.vec_init();
+      tot_Sz[No].Eig.MP_scheduled_evec_init();
     }
   }
 
@@ -3747,7 +3768,6 @@ void Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::
   // 初期状態行列の要素を固有ベクトル用の配列にコピーしておく
   if (c == 'V')
   {
-    // #pragma omp parallel for
     for (int No = 0; No < pair_num; No++)
     {
       MP_schedule_mm_dcopy(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0, tot_Sz[No].Eig.eigen_mat);
@@ -3818,462 +3838,481 @@ void Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::
 
   double start_eval = omp_get_wtime();
   /*----------------lanczos Algorithm---------------*/
-  for (int ls = 0; ls < tri_mat_dim; ls++)
+  if (pair_num != 1)
   {
-    start_1step = omp_get_wtime();
-    is_odd = ls % 2; // even -> ls % 2 = 0 -> false, odd -> ls % 2 = 1 -> true
-    if (err_checker)
+    for (int ls = 0; ls < tri_mat_dim; ls++)
     {
-      ls_count = ls;
-
-      // 省メモリのためのlanczosベクトル更新
-      if (ls > 0)
+      start_1step = omp_get_wtime();
+      is_odd = ls % 2; // even -> ls % 2 = 0 -> false, odd -> ls % 2 = 1 -> true
+      if (err_checker)
       {
+        ls_count = ls;
+
+        // 省メモリのためのlanczosベクトル更新
+        if (ls > 0)
+        {
+          if (is_odd)
+          {
+            start_LowMemory = omp_get_wtime();
+            for (int No = 0; No < pair_num; No++)
+            {
+              MP_schedule_mm_dscal(-beta[ls - 1], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
+            }
+            end_LowMemory = omp_get_wtime();
+            time_LowMemory = end_LowMemory - start_LowMemory;
+          }
+          else
+          {
+            start_LowMemory = omp_get_wtime();
+            for (int No = 0; No < pair_num; No++)
+            {
+              MP_schedule_mm_dscal(-beta[ls - 1], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
+            }
+            end_LowMemory = omp_get_wtime();
+            time_LowMemory = end_LowMemory - start_LowMemory;
+          }
+        }
+        /*========================行列積計算 ＆ α、βの計算==========================*/
+        // @odd step
         if (is_odd)
         {
-          start_LowMemory = omp_get_wtime();
+          start_iso = omp_get_wtime();
           for (int No = 0; No < pair_num; No++)
           {
-            MP_schedule_mm_dscal(-beta[ls - 1], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
+            MP_schedule_iso_mmprod(No, tot_Sz[No].V1, tot_Sz[No].V0);
           }
-          end_LowMemory = omp_get_wtime();
-          time_LowMemory = end_LowMemory - start_LowMemory;
-        }
-        else
-        {
-          start_LowMemory = omp_get_wtime();
+          end_iso = omp_get_wtime();
+          time_isoprod = end_iso - start_iso;
+
+          start_int = omp_get_wtime();
+          if (pair_num != 1)
+          {
+            MP_schedule_odd_int_mmprod();
+          }
+
+          start_int_szz = omp_get_wtime();
           for (int No = 0; No < pair_num; No++)
           {
-            MP_schedule_mm_dscal(-beta[ls - 1], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
+            MP_schedule_int_mmzzord(No, tot_Sz[No].V1, tot_Sz[No].V0);
           }
-          end_LowMemory = omp_get_wtime();
-          time_LowMemory = end_LowMemory - start_LowMemory;
-        }
-      }
-      /*========================行列積計算 ＆ α、βの計算==========================*/
-      // @odd step
-      if (is_odd)
-      {
-        start_iso = omp_get_wtime();
-        for (int No = 0; No < pair_num; No++)
-        {
-          MP_schedule_iso_mmprod(No, tot_Sz[No].V1, tot_Sz[No].V0);
-        }
-        end_iso = omp_get_wtime();
-        time_isoprod = end_iso - start_iso;
+          end_int_szz = omp_get_wtime();
+          time_int_szz = end_int_szz - start_int_szz;
 
-        start_int = omp_get_wtime();
-        for (int No = 0; No < pair_num; No++)
+          end_int = omp_get_wtime();
+          time_intprod = end_int - start_int;
+
+          start_alpha = omp_get_wtime();
+          MP_schedule_calc_alpha_oddstep(ls, alpha);
+          end_alpha = omp_get_wtime();
+          time_alpha = end_alpha - start_alpha;
+
+          start_beta = omp_get_wtime();
+          MP_schedule_calc_beta_oddstep(tri_mat_dim, ls, alpha, beta);
+          end_beta = omp_get_wtime();
+          time_beta = end_beta - start_beta;
+
+          // lanczosベクトルの更新
+          start_renew = omp_get_wtime();
+          for (int No = 0; No < pair_num; No++)
+            MP_schedule_mm_dscal(1. / beta[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
+          end_renew = omp_get_wtime();
+          time_renew = end_renew - start_renew;
+        } // end odd step
+        else
         {
-          // MP_schedule_int_mmzzord(No, tot_Sz[No].V1, tot_Sz[No].V0);
+          start_iso = omp_get_wtime();
+          for (int No = 0; No < pair_num; No++)
+          {
+            MP_schedule_iso_mmprod(No, tot_Sz[No].V0, tot_Sz[No].V1);
+          }
+          end_iso = omp_get_wtime();
+          time_isoprod = end_iso - start_iso;
+
+          start_int = omp_get_wtime();
           if (pair_num != 1)
           {
-            MP_schedule_int_mmprod(No, tot_Sz[No].V1, tot_Sz[No].V0, tot_Sz[No - 1].V0, tot_Sz[No + 1].V0); // 動作ok
+            MP_schedule_even_int_mmprod();
+          }
+
+          start_int_szz = omp_get_wtime();
+          for (int No = 0; No < pair_num; No++)
+          {
+            MP_schedule_int_mmzzord(No, tot_Sz[No].V0, tot_Sz[No].V1);
+          }
+          end_int_szz = omp_get_wtime();
+          time_int_szz = end_int_szz - start_int_szz;
+          end_int = omp_get_wtime();
+          time_intprod = end_int - start_int;
+
+          start_alpha = omp_get_wtime();
+          MP_schedule_calc_alpha_evenstep(ls, alpha);
+          end_alpha = omp_get_wtime();
+          time_alpha = end_alpha - start_alpha;
+
+          start_beta = omp_get_wtime();
+          MP_schedule_calc_beta_evenstep(tri_mat_dim, ls, alpha, beta);
+          end_beta = omp_get_wtime();
+          time_beta = end_beta - start_beta;
+
+          // lanczosベクトルの更新
+          start_renew = omp_get_wtime();
+          for (int No = 0; No < pair_num; No++)
+            MP_schedule_mm_dscal(1. / beta[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
+          end_renew = omp_get_wtime();
+          time_renew = end_renew - start_renew;
+        } // even step
+
+        /*===========================三重対角行列の数値対角化===========================*/
+        MP_schedule_vec_init(tri_mat_dim, diag);
+        MP_schedule_vec_init(tri_mat_dim - 1, sub_diag);
+        int info = 0;
+
+        if (is_odd) // odd step
+        {
+          cblas_dcopy(tri_mat_dim, alpha, 1, diag, 1);
+          cblas_dcopy(tri_mat_dim - 1, beta, 1, sub_diag, 1);
+          if (ls < tri_mat_dim - 1)
+          {
+            sub_diag[ls] = 0.;
+            if (c == 'N')
+            {
+              // 固有値のみを計算する場合
+              start_diagonalize = omp_get_wtime();
+              info =
+                  LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
+                                sub_diag, tri_diag_evec, ls + 1);
+
+              end_diagonalize = omp_get_wtime();
+              time_diagonalize = end_diagonalize - start_diagonalize;
+            }
+            else
+            {
+              // 固有ベクトルのみを計算する場合
+              start_diagonalize = omp_get_wtime();
+              info =
+                  LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
+                                sub_diag, tri_diag_evec, ls + 1);
+              end_diagonalize = omp_get_wtime();
+              time_diagonalize = end_diagonalize - start_diagonalize;
+            }
+
+            if (info != 0)
+            {
+              std::cout << "@ls = " << ls
+                        << " , LAPACKE_detev's error." << std::endl;
+              cout << "info = " << info << endl;
+            }
+          }
+          else
+          {
+            if (c == 'N')
+            {
+              // 固有値のみを計算する場合
+              start_diagonalize = omp_get_wtime();
+              info =
+                  LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
+                                sub_diag, tri_diag_evec, ls + 1);
+              end_diagonalize = omp_get_wtime();
+              time_diagonalize = end_diagonalize - start_diagonalize;
+            }
+            else
+            {
+              // 固有ベクトルを計算する場合
+              start_diagonalize = omp_get_wtime();
+              info =
+                  LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
+                                sub_diag, tri_diag_evec, ls + 1);
+              end_diagonalize = omp_get_wtime();
+              time_diagonalize = end_diagonalize - start_diagonalize;
+            }
+            if (info != 0)
+            {
+              std::cout << "@ls = " << ls
+                        << " , LAPACKE_detev's error." << std::endl;
+              cout << "info = " << info << endl;
+            }
+          }
+          cblas_dcopy(tri_mat_dim, diag, 1, eval_odd, 1);
+          if (info_ls == 'y')
+          {
+            std::cout << "@ls = " << ls
+                      << " : eigen value = " << eval_odd[0]
+                      << std::endl;
+          }
+          else if (info_ls == 's')
+          {
+            cout << "@ls = " << ls << endl;
+          }
+        } // end of odd step
+        else
+        {
+          // 偶数step
+          cblas_dcopy(tri_mat_dim, alpha, 1, diag, 1);
+          cblas_dcopy(tri_mat_dim - 1, beta, 1, sub_diag, 1);
+
+          if (ls < tri_mat_dim - 1)
+          {
+            sub_diag[ls] = 0.;
+            if (c == 'N')
+            {
+              // 固有値のみを計算する場合
+              start_diagonalize = omp_get_wtime();
+              info =
+                  LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
+                                sub_diag, tri_diag_evec, ls + 1);
+
+              end_diagonalize = omp_get_wtime();
+              time_diagonalize = end_diagonalize - start_diagonalize;
+            }
+            else
+            { // 固有ベクトルも計算する場合
+              start_diagonalize = omp_get_wtime();
+              info =
+                  LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
+                                sub_diag, tri_diag_evec, ls + 1);
+              end_diagonalize = omp_get_wtime();
+              time_diagonalize = end_diagonalize - start_diagonalize;
+            }
+
+            if (info != 0)
+            {
+              std::cout << "@ls = " << ls
+                        << " , LAPACKE_detev errored." << std::endl;
+              cout << "info = " << info << endl;
+            }
+          }
+          else
+          {
+            if (c == 'N')
+            {
+              // 固有値のみを計算する場合
+              start_diagonalize = omp_get_wtime();
+              info =
+                  LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
+                                sub_diag, tri_diag_evec, ls + 1);
+              end_diagonalize = omp_get_wtime();
+              time_diagonalize = end_diagonalize - start_diagonalize;
+            }
+            else
+            {
+              // 固有ベクトルを計算する場合
+              start_diagonalize = omp_get_wtime();
+              info =
+                  LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
+                                sub_diag, tri_diag_evec, ls + 1);
+              end_diagonalize = omp_get_wtime();
+              time_diagonalize = end_diagonalize - start_diagonalize;
+            }
+
+            if (info != 0)
+            {
+              std::cout << "@ls = " << ls
+                        << " , LAPACKE_detev errored." << std::endl;
+              cout << "info = " << info << endl;
+            }
+          }
+          cblas_dcopy(tri_mat_dim, diag, 1, eval_even, 1);
+          if (info_ls == 'y')
+          {
+            std::cout << "@ls = " << ls
+                      << " : eigen value = " << eval_even[0]
+                      << std::endl;
+          }
+          else if (info_ls == 's')
+          {
+            std::cout << "@ls = " << ls << std::endl;
+          }
+        } // end of even step
+
+        end_1step = omp_get_wtime();
+        time_1step_lanczos = end_1step - start_1step;
+
+        ofs << setw(5) << ls << "," << setw(15) << time_isoprod << ","
+            << setw(15) << time_intprod << ","
+            << setw(15) << time_int_szz << ","
+            << setw(15) << time_alpha << ","
+            << setw(15) << time_beta << ","
+            << setw(15) << time_LowMemory << ","
+            << setw(15) << time_renew << ","
+            << setw(15) << time_diagonalize << ","
+            << setw(15) << time_1step_lanczos << endl;
+        /*======================================================================*/
+
+        /*============================収束状況の確認==============================*/
+        if (ls > 0)
+        {
+          eps = abs(eval_even[0] - eval_odd[0]);
+          if (info_ls == 'y')
+          {
+            cout << "eps = " << std::setprecision(17) << eps << endl;
+          }
+
+          if (eps > err)
+            err_checker = true;
+          else
+          {
+            err_checker = false;
+            ls_check = true;
           }
         }
-        start_int_szz = omp_get_wtime();
-        for (int No = 0; No < pair_num; No++)
-        {
-          MP_schedule_int_mmzzord(No, tot_Sz[No].V1, tot_Sz[No].V0);
-        }
-        end_int_szz = omp_get_wtime();
-        time_int_szz = end_int_szz - start_int_szz;
-
-        end_int = omp_get_wtime();
-        time_intprod = end_int - start_int;
-
-        start_alpha = omp_get_wtime();
-        MP_schedule_calc_alpha_oddstep(ls, alpha);
-        end_alpha = omp_get_wtime();
-        time_alpha = end_alpha - start_alpha;
-
-        start_beta = omp_get_wtime();
-        MP_schedule_calc_beta_oddstep(tri_mat_dim, ls, alpha, beta);
-        end_beta = omp_get_wtime();
-        time_beta = end_beta - start_beta;
-
-        // lanczosベクトルの更新
-        start_renew = omp_get_wtime();
-        for (int No = 0; No < pair_num; No++)
-          MP_schedule_mm_dscal(1. / beta[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
-        end_renew = omp_get_wtime();
-        time_renew = end_renew - start_renew;
-      } // end odd step
+        /*=====================================================================*/
+      } // err_checer
       else
       {
-        start_iso = omp_get_wtime();
-        for (int No = 0; No < pair_num; No++)
-        {
-          MP_schedule_iso_mmprod(No, tot_Sz[No].V0, tot_Sz[No].V1);
-        }
-        end_iso = omp_get_wtime();
-        time_isoprod = end_iso - start_iso;
-
-        start_int = omp_get_wtime();
-        for (int No = 0; No < pair_num; No++)
-        {
-          // MP_schedule_int_mmzzord(No, tot_Sz[No].V0, tot_Sz[No].V1);
-          if (pair_num != 1)
-          {
-            MP_schedule_int_mmprod(No, tot_Sz[No].V0, tot_Sz[No].V1, tot_Sz[No - 1].V1, tot_Sz[No + 1].V1);
-          }
-        }
-
-        start_int_szz = omp_get_wtime();
-        for (int No = 0; No < pair_num; No++)
-        {
-          MP_schedule_int_mmzzord(No, tot_Sz[No].V0, tot_Sz[No].V1);
-        }
-        end_int_szz = omp_get_wtime();
-        time_int_szz = end_int_szz - start_int_szz;
-
-        end_int = omp_get_wtime();
-        time_intprod = end_int - start_int;
-
-        start_alpha = omp_get_wtime();
-        MP_schedule_calc_alpha_evenstep(ls, alpha);
-        end_alpha = omp_get_wtime();
-        time_alpha = end_alpha - start_alpha;
-
-        start_beta = omp_get_wtime();
-        MP_schedule_calc_beta_evenstep(tri_mat_dim, ls, alpha, beta);
-        end_beta = omp_get_wtime();
-        time_beta = end_beta - start_beta;
-
-        // lanczosベクトルの更新
-        start_renew = omp_get_wtime();
-        for (int No = 0; No < pair_num; No++)
-          MP_schedule_mm_dscal(1. / beta[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
-        end_renew = omp_get_wtime();
-        time_renew = end_renew - start_renew;
-      } // even step
-
-      /*===========================三重対角行列の数値対角化===========================*/
-      MP_schedule_vec_init(tri_mat_dim, diag);
-      MP_schedule_vec_init(tri_mat_dim - 1, sub_diag);
-      int info = 0;
-
-      if (is_odd) // odd step
-      {
-        cblas_dcopy(tri_mat_dim, alpha, 1, diag, 1);
-        cblas_dcopy(tri_mat_dim - 1, beta, 1, sub_diag, 1);
-        if (ls < tri_mat_dim - 1)
-        {
-          sub_diag[ls] = 0.;
-          if (c == 'N')
-          {
-            // 固有値のみを計算する場合
-            start_diagonalize = omp_get_wtime();
-            info =
-                LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
-                              sub_diag, tri_diag_evec, ls + 1);
-
-            end_diagonalize = omp_get_wtime();
-            time_diagonalize = end_diagonalize - start_diagonalize;
-          }
-          else
-          {
-            // 固有ベクトルのみを計算する場合
-            start_diagonalize = omp_get_wtime();
-            info =
-                LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
-                              sub_diag, tri_diag_evec, ls + 1);
-            end_diagonalize = omp_get_wtime();
-            time_diagonalize = end_diagonalize - start_diagonalize;
-          }
-
-          if (info != 0)
-          {
-            std::cout << "@ls = " << ls
-                      << " , LAPACKE_detev's error." << std::endl;
-            cout << "info = " << info << endl;
-          }
-        }
-        else
-        {
-          start_diagonalize = omp_get_wtime();
-          int info =
-              LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
-                            sub_diag, tri_diag_evec, ls + 1);
-          end_diagonalize = omp_get_wtime();
-          time_diagonalize = end_diagonalize - start_diagonalize;
-          if (info != 0)
-          {
-            std::cout << "@ls = " << ls
-                      << " , LAPACKE_detev's error." << std::endl;
-            cout << "info = " << info << endl;
-          }
-        }
-        cblas_dcopy(tri_mat_dim, diag, 1, eval_odd, 1);
-        if (info_ls == 'y')
-        {
-          std::cout << "@ls = " << ls
-                    << " : eigen value = " << eval_odd[0]
-                    << std::endl;
-        }
-        else if (info_ls == 's')
-        {
-          cout << "@ls = " << ls << endl;
-        }
-      } // end of odd step
-      else
-      {
-        // 偶数step
-        cblas_dcopy(tri_mat_dim, alpha, 1, diag, 1);
-        cblas_dcopy(tri_mat_dim - 1, beta, 1, sub_diag, 1);
-
-        if (ls < tri_mat_dim - 1)
-        {
-          sub_diag[ls] = 0.;
-          if (c == 'N')
-          {
-            // 固有値のみを計算する場合
-            start_diagonalize = omp_get_wtime();
-            info =
-                LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
-                              sub_diag, tri_diag_evec, ls + 1);
-
-            // info =
-            //     LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', tri_mat_dim, diag,
-            //                   sub_diag, tri_diag_evec, tri_mat_dim);
-            end_diagonalize = omp_get_wtime();
-            time_diagonalize = end_diagonalize - start_diagonalize;
-          }
-          else
-          { // 固有ベクトルも計算する場合
-            start_diagonalize = omp_get_wtime();
-            info =
-                LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
-                              sub_diag, tri_diag_evec, ls + 1);
-            end_diagonalize = omp_get_wtime();
-            time_diagonalize = end_diagonalize - start_diagonalize;
-          }
-
-          if (info != 0)
-          {
-            std::cout << "@ls = " << ls
-                      << " , LAPACKE_detev errored." << std::endl;
-            cout << "info = " << info << endl;
-          }
-        }
-        else
-        {
-          if (c == 'N')
-          {
-            // 固有値のみを計算する場合
-            start_diagonalize = omp_get_wtime();
-            info =
-                LAPACKE_dstev(LAPACK_COL_MAJOR, 'N', ls + 1, diag,
-                              sub_diag, tri_diag_evec, ls + 1);
-            end_diagonalize = omp_get_wtime();
-            time_diagonalize = end_diagonalize - start_diagonalize;
-          }
-          else
-          {
-            // 固有ベクトルを計算する場合
-            start_diagonalize = omp_get_wtime();
-            info =
-                LAPACKE_dstev(LAPACK_COL_MAJOR, 'V', ls + 1, diag,
-                              sub_diag, tri_diag_evec, ls + 1);
-            end_diagonalize = omp_get_wtime();
-            time_diagonalize = end_diagonalize - start_diagonalize;
-          }
-
-          if (info != 0)
-          {
-            std::cout << "@ls = " << ls
-                      << " , LAPACKE_detev errored." << std::endl;
-            cout << "info = " << info << endl;
-          }
-        }
-        cblas_dcopy(tri_mat_dim, diag, 1, eval_even, 1);
-        if (info_ls == 'y')
-        {
-          std::cout << "@ls = " << ls
-                    << " : eigen value = " << eval_even[0]
-                    << std::endl;
-        }
-        else if (info_ls == 's')
-        {
-          std::cout << "@ls = " << ls << std::endl;
-        }
-      } // end of even step
-
-      end_1step = omp_get_wtime();
-      time_1step_lanczos = end_1step - start_1step;
-
-      ofs << setw(5) << ls << "," << setw(15) << time_isoprod << ","
-          << setw(15) << time_intprod << ","
-          << setw(15) << time_int_szz << ","
-          << setw(15) << time_alpha << ","
-          << setw(15) << time_beta << ","
-          << setw(15) << time_LowMemory << ","
-          << setw(15) << time_renew << ","
-          << setw(15) << time_diagonalize << ","
-          << setw(15) << time_1step_lanczos << endl;
-      /*======================================================================*/
-
-      /*============================収束状況の確認==============================*/
-      if (ls > 0)
-      {
-        eps = abs(eval_even[0] - eval_odd[0]);
-        if (info_ls == 'y')
-        {
-          cout << "eps = " << std::setprecision(17) << eps << endl;
-        }
-
-        if (eps > err)
-          err_checker = true;
-        else
-        {
-          err_checker = false;
-          ls_check = true;
-        }
+        cout << "eps = " << eps << endl;
+        --ls_count;
+        break;
       }
-      /*=====================================================================*/
-    } // err_checer
+    } // ls
+
+    /*========================基底状態の固有値===========================*/
+    if (ls_count % 2 == 0)
+      eigen_value = eval_even[0];
     else
+      eigen_value = eval_odd[0];
+
+    double end_eval = omp_get_wtime();
+    total_eval = end_eval - start_eval;
+    run_time_eigenval = total_eval;
+  }
+  else
+  {
+    ls_check = true;
+    eigen_value = tot_Sz[0].H_iso[0].val[0] + tot_Sz[0].H_iso[1].val[0];
+    for (int id = 0; id < system_num - 2; id++)
     {
-      cout << "eps = " << eps << endl;
-      --ls_count;
-      break;
+      double J_val = tot_Sz[0].H_int[id].J.val(0);
+      eigen_value += tot_Sz[0].H_int[id].sz_A[0] * tot_Sz[0].H_int[id].sz_B[0] * 0.25 * J_val;
     }
-  } // ls
+  }
 
   ofs.close(); // 各処理に要する時間を出力するためのファイルをclose
-  /*========================基底状態の固有値===========================*/
-  if (ls_count % 2 == 0)
-    eigen_value = eval_even[0];
-  else
-    eigen_value = eval_odd[0];
 
   /*========================配列リソースのリリース part1===================*/
   delete[] eval_even;
   delete[] eval_odd;
 
-  double end_eval = omp_get_wtime();
-  total_eval = end_eval - start_eval;
-  run_time_eigenval = total_eval;
-
   /*======================基底状態の固有ベクトルの計算---------------------*/
   if (c == 'V')
   {
-    double start_calc_evec = omp_get_wtime();
-    for (int No = 0; No < pair_num; No++)
+    if (pair_num != 1)
     {
-      MP_schedule_mm_init(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
-      MP_schedule_mm_init(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
-      MP_schedule_mm_dcopy(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].Eig.eigen_mat, tot_Sz[No].V0);
-    }
-
-    for (int ls = 0; ls < ls_count + 2; ls++)
-    {
-      is_odd = ls % 2;
-      if (is_odd)
+      double start_calc_evec = omp_get_wtime();
+      for (int No = 0; No < pair_num; No++)
       {
-        for (int No = 0; No < pair_num; No++)
-        {
-          MP_schedule_mm_daxpy(tri_diag_evec[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1, tot_Sz[No].Eig.eigen_mat);
-        }
+        MP_schedule_mm_init(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
+        MP_schedule_mm_init(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
+        MP_schedule_mm_dcopy(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].Eig.eigen_mat, tot_Sz[No].V0);
       }
-      else
+      for (int ls = 0; ls < ls_count + 2; ls++)
       {
-        if (ls == 0)
-        {
-          for (int No = 0; No < pair_num; No++)
-          {
-            MP_schedule_mm_dscal(tri_diag_evec[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].Eig.eigen_mat);
-          }
-        }
-        else
-        {
-          for (int No = 0; No < pair_num; No++)
-          {
-            MP_schedule_mm_daxpy(tri_diag_evec[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0, tot_Sz[No].Eig.eigen_mat);
-          }
-        }
-      }
-
-      if (ls > 0)
-      {
+        is_odd = ls % 2;
         if (is_odd)
         {
           for (int No = 0; No < pair_num; No++)
           {
-            MP_schedule_mm_dscal(-beta[ls - 1], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
+            MP_schedule_mm_daxpy(tri_diag_evec[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1, tot_Sz[No].Eig.eigen_mat);
+          }
+        }
+        else
+        {
+          if (ls == 0)
+          {
+            for (int No = 0; No < pair_num; No++)
+            {
+              MP_schedule_mm_dscal(tri_diag_evec[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].Eig.eigen_mat);
+            }
+          }
+          else
+          {
+            for (int No = 0; No < pair_num; No++)
+            {
+              MP_schedule_mm_daxpy(tri_diag_evec[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0, tot_Sz[No].Eig.eigen_mat);
+            }
+          }
+        }
+
+        if (ls > 0)
+        {
+          if (is_odd)
+          {
+            for (int No = 0; No < pair_num; No++)
+            {
+              MP_schedule_mm_dscal(-beta[ls - 1], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
+            }
+          }
+          else
+          {
+            for (int No = 0; No < pair_num; No++)
+            {
+              MP_schedule_mm_dscal(-beta[ls - 1], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
+            }
+          }
+        }
+
+        if (is_odd)
+        {
+          for (int No = 0; No < pair_num; No++)
+          {
+            MP_schedule_iso_mmprod(No, tot_Sz[No].V1, tot_Sz[No].V0);
+            MP_schedule_int_mmzzord(No, tot_Sz[No].V1, tot_Sz[No].V0);
+          }
+          if (pair_num != 1)
+          {
+            MP_schedule_odd_int_mmprod();
+          }
+          for (int No = 0; No < pair_num; No++)
+          {
+            MP_schedule_mm_daxpy(-alpha[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1, tot_Sz[No].V0);
+          }
+          // lanczosベクトルの更新
+          if (ls != tri_mat_dim - 1)
+          {
+            for (int No = 0; No < pair_num; No++)
+              MP_schedule_mm_dscal(1. / beta[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
           }
         }
         else
         {
           for (int No = 0; No < pair_num; No++)
           {
-            MP_schedule_mm_dscal(-beta[ls - 1], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
+            MP_schedule_iso_mmprod(No, tot_Sz[No].V0, tot_Sz[No].V1);
+            MP_schedule_int_mmzzord(No, tot_Sz[No].V0, tot_Sz[No].V1);
+          }
+          if (pair_num != 1)
+          {
+            MP_schedule_even_int_mmprod();
+          }
+          for (int No = 0; No < pair_num; No++)
+          {
+            MP_schedule_mm_daxpy(-alpha[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0, tot_Sz[No].V1);
+          }
+          // lanczosベクトルの更新
+          if (ls != tri_mat_dim - 1)
+          {
+            for (int No = 0; No < pair_num; No++)
+              MP_schedule_mm_dscal(1. / beta[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
           }
         }
       }
-
-      if (is_odd)
+      // lanczosベクトルの規格化
+      double tot_norm = 0;
+      double dnrm2;
+      for (int No = 0; No < pair_num; No++)
       {
-        for (int No = 0; No < pair_num; No++)
-        {
-          MP_schedule_iso_mmprod(No, tot_Sz[No].V1, tot_Sz[No].V0);
-          MP_schedule_int_mmzzord(No, tot_Sz[No].V1, tot_Sz[No].V0);
-          if (pair_num != 1)
-          {
-            MP_schedule_int_mmprod(No, tot_Sz[No].V1, tot_Sz[No].V0, tot_Sz[No - 1].V0, tot_Sz[No + 1].V0); // 動作ok
-          }
-        }
-        for (int No = 0; No < pair_num; No++)
-        {
-          MP_schedule_mm_daxpy(-alpha[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1, tot_Sz[No].V0);
-        }
-        // lanczosベクトルの更新
-        if (ls != tri_mat_dim - 1)
-        {
-          for (int No = 0; No < pair_num; No++)
-            MP_schedule_mm_dscal(1. / beta[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0);
-        }
+        tot_norm += MP_schedule_mm_ddot(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].Eig.eigen_mat, tot_Sz[No].Eig.eigen_mat);
       }
-      else
-      {
-        for (int No = 0; No < pair_num; No++)
-        {
-          MP_schedule_iso_mmprod(No, tot_Sz[No].V0, tot_Sz[No].V1);
-          MP_schedule_int_mmzzord(No, tot_Sz[No].V0, tot_Sz[No].V1);
-          if (pair_num != 1)
-          {
-            MP_schedule_int_mmprod(No, tot_Sz[No].V0, tot_Sz[No].V1, tot_Sz[No - 1].V1, tot_Sz[No + 1].V1); // 動作ok
-          }                                                                                                 // 動作OK
-        }
-        for (int No = 0; No < pair_num; No++)
-        {
-          MP_schedule_mm_daxpy(-alpha[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0, tot_Sz[No].V1);
-        }
-        // lanczosベクトルの更新
-        if (ls != tri_mat_dim - 1)
-        {
-          for (int No = 0; No < pair_num; No++)
-            MP_schedule_mm_dscal(1. / beta[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V1);
-        }
-      }
-    }
-    // lanczosベクトルの規格化
-    double tot_norm = 0;
-    double dnrm2;
-    for (int No = 0; No < pair_num; No++)
-    {
-      tot_norm += MP_schedule_mm_ddot(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].Eig.eigen_mat, tot_Sz[No].Eig.eigen_mat);
-    }
-    dnrm2 = sqrt(tot_norm);
+      dnrm2 = sqrt(tot_norm);
 
-    for (int No = 0; No < pair_num; No++)
-    {
-      MP_schedule_mm_dscal(1. / dnrm2, tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].Eig.eigen_mat);
+      for (int No = 0; No < pair_num; No++)
+      {
+        MP_schedule_mm_dscal(1. / dnrm2, tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].Eig.eigen_mat);
+      }
+      double end_calc_evec = omp_get_wtime();
+      // lanczos法で固有ベクトルを求めるのに要した時間
+      double total_calc_evec = end_calc_evec - start_calc_evec;
+      run_time_eigenvec = total_calc_evec;
     }
-    double end_calc_evec = omp_get_wtime();
-    // lanczos法で固有ベクトルを求めるのに要した時間
-    double total_calc_evec = end_calc_evec - start_calc_evec;
-    run_time_eigenvec = total_calc_evec;
 
     run_time_total += run_time_eigenval + run_time_eigenvec; // hamiltonianの行列要素の計算から固有値、ベクトル計算までに要した時間
   }
@@ -4361,11 +4400,11 @@ void Subsystem_Sz::int_mmprod(const int No, double **V0, double **V1, double **V
 
   for (int id = 0; id < system_num - 2; id++)
   {
-    if (is_No_pairnum_1) // No == pair_num-1ではS^+とS^zだけ定義可能
+    if (is_No_pairnum_1) // No == pair_num-1ではS^+とS^zだけ定義可能(S^zは別のところで計算)
     {
       tot_Sz[No].H_int[id].int_rise_mmprod(tot_Sz[No].H_int[id].nnz_pA, tot_Sz[No].H_int[id].nnz_pB, tot_Sz[No].H_int[id].prow_ind_A, tot_Sz[No].H_int[id].pcol_ind_A, tot_Sz[No].H_int[id].prow_ind_B, tot_Sz[No].H_int[id].pcol_ind_B, V0, V1, V1_dic1);
     }
-    else if (is_No_0) // No == 0ではS^-とS^zだけ定義可能
+    else if (is_No_0) // No == 0ではS^-とS^zだけ定義可能(S^zは別のところで計算)
     {
       tot_Sz[No].H_int[id].int_dsmn_mmprod(tot_Sz[No].H_int[id].nnz_mA, tot_Sz[No].H_int[id].nnz_mB, tot_Sz[No].H_int[id].mrow_ind_A, tot_Sz[No].H_int[id].mcol_ind_A, tot_Sz[No].H_int[id].mrow_ind_B, tot_Sz[No].H_int[id].mcol_ind_B, V0, V1, V1_inc1);
     }
@@ -4430,6 +4469,52 @@ void Subsystem_Sz::MP_schedule_int_mmprod(const int No, double **V0, double **V1
   }
 };
 
+void Subsystem_Sz::MP_schedule_even_int_mmprod()
+{
+  // No == 0の場合
+  for (int id = 0; id < system_num - 2; id++)
+  {
+    tot_Sz[0].H_int[id].MP_schedule_int_dsmn_mmprod(tot_Sz[0].H_int[id].nnz_mA, tot_Sz[0].H_int[id].nnz_mB, tot_Sz[0].H_int[id].mrow_ind_A, tot_Sz[0].H_int[id].mcol_ind_A, tot_Sz[0].H_int[id].mrow_ind_B, tot_Sz[0].H_int[id].mcol_ind_B, tot_Sz[0].V0, tot_Sz[0].V1, tot_Sz[1].V1);
+  }
+  // 0 < No < pair_num - 1の場合
+  for (int No = 1; No < pair_num - 1; No++)
+  {
+    for (int id = 0; id < system_num - 2; id++)
+    {
+      tot_Sz[No].H_int[id].MP_schedule_int_dsmn_mmprod(tot_Sz[No].H_int[id].nnz_mA, tot_Sz[No].H_int[id].nnz_mB, tot_Sz[No].H_int[id].mrow_ind_A, tot_Sz[No].H_int[id].mcol_ind_A, tot_Sz[No].H_int[id].mrow_ind_B, tot_Sz[No].H_int[id].mcol_ind_B, tot_Sz[No].V0, tot_Sz[No].V1, tot_Sz[No + 1].V1);
+      tot_Sz[No].H_int[id].MP_schedule_int_rise_mmprod(tot_Sz[No].H_int[id].nnz_pA, tot_Sz[No].H_int[id].nnz_pB, tot_Sz[No].H_int[id].prow_ind_A, tot_Sz[No].H_int[id].pcol_ind_A, tot_Sz[No].H_int[id].prow_ind_B, tot_Sz[No].H_int[id].pcol_ind_B, tot_Sz[No].V0, tot_Sz[No].V1, tot_Sz[No - 1].V1);
+    }
+  }
+  // No == pair_num - 1 の場合
+  for (int id = 0; id < system_num - 2; id++)
+  {
+    tot_Sz[pair_num - 1].H_int[id].MP_schedule_int_rise_mmprod(tot_Sz[pair_num - 1].H_int[id].nnz_pA, tot_Sz[pair_num - 1].H_int[id].nnz_pB, tot_Sz[pair_num - 1].H_int[id].prow_ind_A, tot_Sz[pair_num - 1].H_int[id].pcol_ind_A, tot_Sz[pair_num - 1].H_int[id].prow_ind_B, tot_Sz[pair_num - 1].H_int[id].pcol_ind_B, tot_Sz[pair_num - 1].V0, tot_Sz[pair_num - 1].V1, tot_Sz[pair_num - 2].V1);
+  }
+}
+
+void Subsystem_Sz::MP_schedule_odd_int_mmprod()
+{
+  // No == 0の場合
+  for (int id = 0; id < system_num - 2; id++)
+  {
+    tot_Sz[0].H_int[id].MP_schedule_int_dsmn_mmprod(tot_Sz[0].H_int[id].nnz_mA, tot_Sz[0].H_int[id].nnz_mB, tot_Sz[0].H_int[id].mrow_ind_A, tot_Sz[0].H_int[id].mcol_ind_A, tot_Sz[0].H_int[id].mrow_ind_B, tot_Sz[0].H_int[id].mcol_ind_B, tot_Sz[0].V1, tot_Sz[0].V0, tot_Sz[1].V0);
+  }
+  // 0 < No < pair_num - 1の場合
+  for (int No = 1; No < pair_num - 1; No++)
+  {
+    for (int id = 0; id < system_num - 2; id++)
+    {
+      tot_Sz[No].H_int[id].MP_schedule_int_dsmn_mmprod(tot_Sz[No].H_int[id].nnz_mA, tot_Sz[No].H_int[id].nnz_mB, tot_Sz[No].H_int[id].mrow_ind_A, tot_Sz[No].H_int[id].mcol_ind_A, tot_Sz[No].H_int[id].mrow_ind_B, tot_Sz[No].H_int[id].mcol_ind_B, tot_Sz[No].V1, tot_Sz[No].V0, tot_Sz[No + 1].V0);
+      tot_Sz[No].H_int[id].MP_schedule_int_rise_mmprod(tot_Sz[No].H_int[id].nnz_pA, tot_Sz[No].H_int[id].nnz_pB, tot_Sz[No].H_int[id].prow_ind_A, tot_Sz[No].H_int[id].pcol_ind_A, tot_Sz[No].H_int[id].prow_ind_B, tot_Sz[No].H_int[id].pcol_ind_B, tot_Sz[No].V1, tot_Sz[No].V0, tot_Sz[No - 1].V0);
+    }
+  }
+  // No == pair_num - 1 の場合
+  for (int id = 0; id < system_num - 2; id++)
+  {
+    tot_Sz[pair_num - 1].H_int[id].MP_schedule_int_rise_mmprod(tot_Sz[pair_num - 1].H_int[id].nnz_pA, tot_Sz[pair_num - 1].H_int[id].nnz_pB, tot_Sz[pair_num - 1].H_int[id].prow_ind_A, tot_Sz[pair_num - 1].H_int[id].pcol_ind_A, tot_Sz[pair_num - 1].H_int[id].prow_ind_B, tot_Sz[pair_num - 1].H_int[id].pcol_ind_B, tot_Sz[pair_num - 1].V1, tot_Sz[pair_num - 1].V0, tot_Sz[pair_num - 2].V0);
+  }
+}
+
 void Subsystem_Sz::int_mmzzord(const int No, double **V0, double **V1)
 {
   for (int id = 0; id < system_num - 2; id++)
@@ -4446,35 +4531,35 @@ void Subsystem_Sz::MP_int_mmzzord(const int No, double **V0, double **V1)
   }
 }
 
-void Subsystem_Sz::MP_schedule_int_mmzzord(const int No, double **V0, double **V1)
-{
-  for (int id = 0; id < system_num - 2; id++)
-  {
-    tot_Sz[No].H_int[id].MP_schedule_int_zz_mmprod(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].H_int[id].sz_A, tot_Sz[No].H_int[id].sz_B, V0, V1); // 動作OK
-  }
-}
-
 // void Subsystem_Sz::MP_schedule_int_mmzzord(const int No, double **V0, double **V1)
 // {
-//   int dim_A = tot_Sz[No].bm_A_size;
-//   int dim_B = tot_Sz[No].bm_B_size;
-//   int row, col, id;
-//   double mat_val, sz_A_i, sz_B_j;
-//   double bond;
-// #pragma omp parallel for private(col, id, bond, mat_val) schedule(runtime)
-//   for (row = 0; row < dim_A; row++)
+//   for (int id = 0; id < system_num - 2; id++)
 //   {
-//     for (col = 0; col < dim_B; col++)
-//     {
-//       mat_val = V0[row][col];
-//       for (id = 0; id < system_num - 2; id++)
-//       {
-//         bond = tot_Sz[No].H_int[id].J.val(0);
-//         V1[row][col] += 0.25 * bond * tot_Sz[No].H_int[id].sz_A[row] * tot_Sz[No].H_int[id].sz_B[col] * mat_val;
-//       }
-//     }
+//     tot_Sz[No].H_int[id].MP_schedule_int_zz_mmprod(tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].H_int[id].sz_A, tot_Sz[No].H_int[id].sz_B, V0, V1); // 動作OK
 //   }
 // }
+
+void Subsystem_Sz::MP_schedule_int_mmzzord(const int No, double **V0, double **V1)
+{
+  int dim_A = tot_Sz[No].bm_A_size;
+  int dim_B = tot_Sz[No].bm_B_size;
+  int row, col, id;
+  double mat_val, sz_A_i, sz_B_j;
+  double bond;
+#pragma omp parallel for private(col, id, bond, mat_val) schedule(runtime)
+  for (row = 0; row < dim_A; row++)
+  {
+    for (col = 0; col < dim_B; col++)
+    {
+      mat_val = V0[row][col];
+      for (id = 0; id < system_num - 2; id++)
+      {
+        bond = tot_Sz[No].H_int[id].J.val(0);
+        V1[row][col] += 0.25 * bond * tot_Sz[No].H_int[id].sz_A[row] * tot_Sz[No].H_int[id].sz_B[col] * mat_val;
+      }
+    }
+  }
+}
 
 double Subsystem_Sz::mm_ddot(const int row_dim, const int col_dim, double **V0, double **V1)
 {
@@ -4895,8 +4980,6 @@ void Subsystem_Sz::MP_calc_beta_evenstep(const int tri_mat_dim, const int ls, do
   double tmp = 0.;
   if (ls != tri_mat_dim - 1)
   {
-    // #pragma omp parallel for reduction(+ \
-//                                    : tmp)
     for (int No = 0; No < pair_num; No++)
     {
       MP_mm_daxpy(-alpha[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0, tot_Sz[No].V1);
@@ -4928,7 +5011,6 @@ void Subsystem_Sz::MP_schedule_calc_beta_evenstep(const int tri_mat_dim, const i
   }
   else
   {
-    // #pragma omp parallel for
     for (int No = 0; No < pair_num; No++)
     {
       MP_schedule_mm_daxpy(-alpha[ls], tot_Sz[No].bm_A_size, tot_Sz[No].bm_B_size, tot_Sz[No].V0, tot_Sz[No].V1);
@@ -4996,7 +5078,7 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
       H.sub_space_check();
       H.set_system_info();
       H.sub_hamiltonian();
-      H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time);
+      H.MP_schedule_sub_lanczos_timetest(1000, dir_time);
       cout << H << endl;
       Magnetization.push_back(H.mag);
       eigen_values.push_back(H.eigen_value);
@@ -5012,7 +5094,7 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
       H.sub_space_check();
       H.set_system_info();
       H.sub_hamiltonian();
-      H.MP_schedule_sub_lanczos_timetest(1000, dir_output_time, 'V');
+      H.MP_schedule_sub_lanczos_timetest(1000, dir_time, 'V');
 
       Magnetization.push_back(H.mag);
       eigen_values.push_back(H.eigen_value);
@@ -5026,6 +5108,7 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
       H.calc_szz_rel(total_site_num, dir_szz);
 
       cout << H << endl;
+      cout << H.tot_Sz[0].Eig.eigen_mat[0][0] << endl;
     }
   }
   // 磁場の規格化
@@ -5044,14 +5127,13 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
   cout << "------------------------------------------------------------------------------------------\n";
   for (int i = 0; i < Magnetization.size(); i++)
   {
-    cout << setprecision(15) << Magnetization[i]
-         << setprecision(15) << eigen_values[i] << endl;
+    cout << setw(18) << setprecision(15) << Magnetization[i] << setw(18) << setprecision(15) << eigen_values[i] << endl;
   }
   cout << "===========================================================================================\n";
 
   for (int i = 0; i < Magnetization.size(); i++)
   {
-    eval_data << setprecision(15) << Magnetization[i] << " ,"
+    eval_data << setprecision(15) << Magnetization[i] << " , "
               << setprecision(15) << eigen_values[i] << endl;
   }
   eval_data.close();
@@ -5186,7 +5268,7 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
   int No, n, m, site_i, site_j;
   int state_num_of_A, state_num_of_B;
   bool is_up_spin_i, is_up_spin_j;
-  int sign; // S_i^zS_j^z|Ψ>の符号を代入する sign = ±1
+  double sign; // S_i^zS_j^z|Ψ>の符号を代入する sign = ±1
   double evec_val;
   /*---------------------------------------------------*/
 
@@ -5223,11 +5305,11 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
 
             if (is_up_spin_i == is_up_spin_j)
             {
-              sign = 1;
+              sign = 1.;
             }
             else
             {
-              sign = -1;
+              sign = -1.;
             }
             rel_ij[site_j + dim * site_i] += sign * 0.25 * evec_val * evec_val;
           }
@@ -5278,11 +5360,11 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
 
             if (is_up_spin_i == is_up_spin_j)
             {
-              sign = 1;
+              sign = 1.;
             }
             else
             {
-              sign = -1;
+              sign = -1.;
             }
             rel_ij[site_j + site_i * dim] += sign * 0.25 * evec_val * evec_val;
           }
@@ -5336,11 +5418,11 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
 
             if (is_up_spin_i == is_up_spin_j)
             {
-              sign = 1;
+              sign = 1.;
             }
             else
             {
-              sign = -1;
+              sign = -1.;
             }
             rel_ij[site_j + dim * site_i] += sign * 0.25 * evec_val * evec_val;
           }

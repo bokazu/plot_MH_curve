@@ -118,6 +118,7 @@ public:
     /*------------------------mm系関数------------------------*/
     void iso_mmprod(const int No, double **V0, double **V1);                                     // Iso systemの行列-行列積
     void int_mmprod(const int No, double **V0, double **V1, double **V1_dic1, double **V1_inc1); // Int systemの行列-行列-行列積
+    void int_mmppprod(const int No, double **V0, double **V1, double **V1_dic1, double **V1_inc1);
     void int_mmzzord(const int No, double **V0, double **V1);
     void calc_alpha_evenstep(const int ls, double *alpha);
     void calc_alpha_oddstep(const int ls, double *alpha);
@@ -159,6 +160,8 @@ public:
     /*-------------------mm関数 OpenMP with scheduling利用version------------------*/
     void MP_schedule_iso_mmprod(const int No, double **V0, double **V1);                                     // Iso systemの行列-行列積
     void MP_schedule_int_mmprod(const int No, double **V0, double **V1, double **V1_dic1, double **V1_inc1); // Int systemの行列-行列-行列積
+    void MP_schedule_even_int_mmprod();
+    void MP_schedule_odd_int_mmprod();
     void MP_schedule_int_mmzzord(const int No, double **V0, double **V1);
 
     void MP_schedule_calc_alpha_evenstep(const int ls, double *alpha);

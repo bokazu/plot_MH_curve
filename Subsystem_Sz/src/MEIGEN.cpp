@@ -51,6 +51,19 @@ void MEIGEN::vec_init()
     }
 }
 
+void MEIGEN::MP_scheduled_evec_init()
+{
+    int i, j;
+#pragma omp parallel for private(j) schedule(runtime)
+    for (i = 0; i < dim_A; i++)
+    {
+        for (j = 0; j < dim_B; j++)
+        {
+            eigen_mat[i][j] = 0.0;
+        }
+    }
+}
+
 // 固有ベクトルの要素数を変更し、初期化する
 void MEIGEN::evec_elem(int m, int n)
 {

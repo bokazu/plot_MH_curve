@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
             cout << "argv[" << i << "] = " << argv[i] << endl;
         }
     }
-    int start_up_spin = min_up_spin;
-    int end_up_spin = min_up_spin;
+    int start_up_spin = max_up_spin;
+    int end_up_spin = max_up_spin;
     ranged_calc_gs_energy(sys_num, sys_site_A, sys_site_B, max_up_spin, start_up_spin, end_up_spin, J_red, J_green, J_blue, file, dir_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel, 'V');
 }
