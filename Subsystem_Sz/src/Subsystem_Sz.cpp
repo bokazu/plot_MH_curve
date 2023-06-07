@@ -5237,8 +5237,6 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
   cout << "================================================\n";
 
   // 交点の情報をファイルへ書き出す
-
-  int site_num = sys_site_A + sys_site_B;
   ofstream plateau_data(dir_output);
   for (int i = 0; i < plot_h.size(); i++)
   {

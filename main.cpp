@@ -19,12 +19,12 @@ int main(int argc, char *argv[])
 {
     // min_up_spinからmax_up_spinまでの各部分空間での最小エネルギーを調べる際の雛形
     vector<string> file = {"./settings/jset0.txt", "./settings/jset1.txt", "./settings/jset2.txt"};
-    int sys_num, sys_site_A, sys_site_B, min_up_spin, max_up_spin;
+    int sys_num, sys_site_A, sys_site_B, min_up_spin, max_up_spin, start_up_spin, end_up_spin;
     double J_red, J_green, J_blue;
     std::string dir_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel;
 
     cout << "argc = " << argc << endl;
-    if (argc == 13)
+    if (argc == 15)
     {
         sys_num = stoi(argv[1]);
         sys_site_A = stoi(argv[2]);
@@ -38,6 +38,8 @@ int main(int argc, char *argv[])
         dir_output_time = argv[10];
         dir_output_spin_sxx_rel = argv[11];
         dir_output_spin_szz_rel = argv[12];
+        start_up_spin = atoi(argv[13]);
+        end_up_spin = atoi(argv[14]);
 
         cout << "input : scuccess\n";
         cout << "- File of eigen value : " << dir_output_eval << endl;
@@ -53,7 +55,6 @@ int main(int argc, char *argv[])
             cout << "argv[" << i << "] = " << argv[i] << endl;
         }
     }
-    int start_up_spin = max_up_spin;
-    int end_up_spin = max_up_spin;
+
     ranged_calc_gs_energy(sys_num, sys_site_A, sys_site_B, max_up_spin, start_up_spin, end_up_spin, J_red, J_green, J_blue, file, dir_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel, 'V');
 }

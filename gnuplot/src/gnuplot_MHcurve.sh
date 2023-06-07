@@ -10,7 +10,7 @@
 J_num="Jg00"
 J_val="J_g=0.0"
 
-file1="../../output/Jg10/MHdata_param_red_51.csv"
+file1="../../output/kagome/36site/uniform/.csv"
 file2="../../output/36site/test.csv"
 
 # file1="../output/${J_num}/MHdata_param_red_11.csv"
