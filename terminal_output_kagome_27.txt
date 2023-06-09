@@ -1,0 +1,52 @@
+generate jset files
+argc = 19
+input : scuccess
+J_red                 : 1
+J_green               : 1
+J_blue                : 1
+- File of eigen value : ./output/kagome/27site/output_param1/eigen_val.csv
+- File of time        : ./output/kagome/27site/output_param1/time/time_info_
+- Dir of <SxSx>       : ./output/kagome/27site/output_param1/sxx_rel
+- Dir of <SzSz>       : ./output/kagome/27site/output_param1/szz_rel
+eps = 8.88178e-16
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 14
+- site num of A    : 12
+- site num of B    : 15
+- magnetization    : 10.5
+- No of subspace   : 4
+- Total lanczos step : 92
+- lanczos method   : success
+- Eigen value of Groundstate : 4.500000000000003
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 0.3665401935577393[sec]
+   |_ Hamiltonian     : 0.002928018569946289[sec]
+   |_ Lanczos         : 0.363612174987793[sec]
+       |_ eigen value : 0.2315201759338379[sec]
+       |_ eigen vec   : 0.1320919990539551[sec]
+
+- <SxSx> Total        : 0.011761[sec]
+   |_ (i, j) in A     : 0.00032997[sec]
+   |_ (i, j) in B     : 0.00061917[sec]
+   |_i in A, j in B   : 0.0044501[sec]
+
+- <SzSz> Total        : 0.0010118[sec]
+   |_ (i, j) in A     : 0.00030208[sec]
+   |_ (i, j) in B     : 0.0002501[sec]
+   |_i in A, j in B   : 0.00028801[sec]
+====================================================================
+
+-1.4436e-12
+Subsystem is destructed
+==========================================================================================
+Magnetization       Eigen value
+------------------------------------------------------------------------------------------
+ 0.777777777777778               4.5
+===========================================================================================
+Deleting files in ./settings

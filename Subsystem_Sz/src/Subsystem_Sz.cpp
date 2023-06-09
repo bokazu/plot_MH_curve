@@ -4186,8 +4186,8 @@ void Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::
     }
   }
 
-  ofs.close(); // 各処理に要する時間を出力するためのファイルをclose
-
+  ofs.close();                         // 各処理に要する時間を出力するためのファイルをclose
+  run_time_total += run_time_eigenval; // hamiltonianの行列要素の計算から固有値、ベクトル計算までに要した時間
   /*========================配列リソースのリリース part1===================*/
   delete[] eval_even;
   delete[] eval_odd;
@@ -4314,7 +4314,7 @@ void Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::
       run_time_eigenvec = total_calc_evec;
     }
 
-    run_time_total += run_time_eigenval + run_time_eigenvec; // hamiltonianの行列要素の計算から固有値、ベクトル計算までに要した時間
+    run_time_total += run_time_eigenvec; // hamiltonianの行列要素の計算から固有値、ベクトル計算までに要した時間
   }
   /*========================配列リソースのリリース part2===================*/
   delete[] alpha;
@@ -5101,8 +5101,8 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
 
       int total_site_num = H.tot_site_A + H.tot_site_B;
       // 磁化空間ごとにspin相関の計算結果を出力するファイルを用意する
-      string dir_sxx = dir_output_spin_sxx_rel + to_string(up) + ".csv";
-      string dir_szz = dir_output_spin_szz_rel + to_string(up) + ".csv";
+      string dir_sxx = dir_output_spin_sxx_rel + "/sxx_" + to_string(up) + ".csv";
+      string dir_szz = dir_output_spin_szz_rel + "/szz_" + to_string(up) + ".csv";
 
       H.calc_sxx_rel(total_site_num, dir_sxx);
       H.calc_szz_rel(total_site_num, dir_szz);

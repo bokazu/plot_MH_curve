@@ -7,11 +7,12 @@
 #=================================================================================================
 
 #ファイル名のリストを取得する
-J_num="Jg00"
-J_val="J_g=0.0"
+# J_num="Jg00"
+# J_val="J_g=0.0"
 
-file1="../../output/kagome/36site/uniform/.csv"
-file2="../../output/36site/test.csv"
+
+file1="../../output/kagome/27site/output_param1/MHdata.csv"
+file2="../../output/kagome/36site/distorted/MHdata.csv"
 
 # file1="../output/${J_num}/MHdata_param_red_11.csv"
 # file2="../output/${J_num}/MHdata_param_red_26.csv"
@@ -19,7 +20,7 @@ file2="../../output/36site/test.csv"
 # file4="../output/${J_num}/MHdata_param_red_50.csv"
 
 #出力ファイル名
-output_filename="../img_MH_curve/kagome_36site_test"
+output_filename="../img_MH_curve/kagome_27site_and_36site_distorted"
 # output_filename="./img_MH_curve/${J_num}/kagome_27site_${J_num}.png"
 #同一ファイル名のファイルが存在しないかを確認し、存在する場合にはファイル名を変更する
 # if [ -f $ourput_filename ]; then
@@ -29,7 +30,7 @@ output_filename="../img_MH_curve/kagome_36site_test"
 # fi
 
 #グラフ名
-graph_name="kagome 27, 36site uniform"
+graph_name="kagome 27 & 36 site uniform and distorted(J_r = 1.0, J_g = 0.84, J_b=0.01)"
 # graph_name="kagome 27site ${J_val}"
 
 #gnuplotスクリプトファイルを作成
@@ -44,7 +45,7 @@ gnuplot -p << EOF
     set xrange [0:3.5]
     set yrange [0:1]
 
-    plot "${file1}"  using 1:2 with steps lw 2 linetype rgbcolor 'blue' title "27site(J_r =  J_g = J_g = 1)","${file2}" using 1:2 with steps  dt(15,20) lw 2 linetype rgbcolor 'red' title "36site(J_r =  J_g = J_g = 1)"
+    plot "${file1}"  using 1:2 with steps lw 2 linetype rgbcolor 'blue' title "27site(distorted)","${file2}" using 1:2 with steps  dt(15,20) lw 2 linetype rgbcolor 'red' title "36site(distorted)"
     
     # replot "$file2" using 1:2 with steps dt (5,5) title "J_r = 0.5"
     # replot "$file3" using 1:2 with steps dt (10,10) title "J_r = 0.68"

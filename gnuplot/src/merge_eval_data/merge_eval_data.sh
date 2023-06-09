@@ -1,9 +1,13 @@
 #!/bin/bash
 
-merge_file1="eigen_val_plot_1.csv"
-merge_file2="eigen_val_plot_2.csv"
+eval_data_file1=""
+eval_data_file2=""
+output_eval_data_file=""
 
+echo "merge file 1 : $eval_data_file1"
+echo "merge file 2 : $eval_data_file2"
+echo "output file  : $output_eval_data_file" 
 
-#merge_eval_data.cppの実行
-g++ merge_eval_data.cpp -o merge_eval_data
-merge_eval_data 
+touch $output_eval_data_file
+cat $eval_data_file1 > $output_eval_data_file
+tail -n +1 $eval_data_file2 > $output_eval_data_file

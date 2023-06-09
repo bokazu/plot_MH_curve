@@ -18,13 +18,13 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     // min_up_spinからmax_up_spinまでの各部分空間での最小エネルギーを調べる際の雛形
-    vector<string> file = {"./settings/jset0.txt", "./settings/jset1.txt", "./settings/jset2.txt"};
+    vector<string> file;
     int sys_num, sys_site_A, sys_site_B, min_up_spin, max_up_spin, start_up_spin, end_up_spin;
     double J_red, J_green, J_blue;
-    std::string dir_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel;
-
+    std::string file_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel;
+    char *lanczos_type;
     cout << "argc = " << argc << endl;
-    if (argc == 15)
+    if (argc == 19)
     {
         sys_num = stoi(argv[1]);
         sys_site_A = stoi(argv[2]);
@@ -34,15 +34,22 @@ int main(int argc, char *argv[])
         J_red = atof(argv[6]);
         J_green = atof(argv[7]);
         J_blue = atof(argv[8]);
-        dir_output_eval = argv[9];
-        dir_output_time = argv[10];
-        dir_output_spin_sxx_rel = argv[11];
-        dir_output_spin_szz_rel = argv[12];
-        start_up_spin = atoi(argv[13]);
-        end_up_spin = atoi(argv[14]);
+        file.push_back(argv[9]);
+        file.push_back(argv[10]);
+        file.push_back(argv[11]);
+        file_output_eval = argv[12];
+        dir_output_time = argv[13];
+        dir_output_spin_sxx_rel = argv[14];
+        dir_output_spin_szz_rel = argv[15];
+        start_up_spin = stoi(argv[16]);
+        end_up_spin = stoi(argv[17]);
+        lanczos_type = argv[18];
 
         cout << "input : scuccess\n";
-        cout << "- File of eigen value : " << dir_output_eval << endl;
+        cout << "J_red                 : " << J_red << endl;
+        cout << "J_green               : " << J_green << endl;
+        cout << "J_blue                : " << J_blue << endl;
+        cout << "- File of eigen value : " << file_output_eval << endl;
         cout << "- File of time        : " << dir_output_time << endl;
         cout << "- Dir of <SxSx>       : " << dir_output_spin_sxx_rel << endl;
         cout << "- Dir of <SzSz>       : " << dir_output_spin_szz_rel << endl;
@@ -56,5 +63,5 @@ int main(int argc, char *argv[])
         }
     }
 
-    ranged_calc_gs_energy(sys_num, sys_site_A, sys_site_B, max_up_spin, start_up_spin, end_up_spin, J_red, J_green, J_blue, file, dir_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel, 'V');
+    ranged_calc_gs_energy(sys_num, sys_site_A, sys_site_B, max_up_spin, start_up_spin, end_up_spin, J_red, J_green, J_blue, file, file_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel, *lanczos_type);
 }

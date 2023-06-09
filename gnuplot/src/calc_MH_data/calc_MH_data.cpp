@@ -22,23 +22,30 @@ void calc_MHcurve_data(double J_red, double J_green, double J_blue, std::string 
     // ファイルから磁化と対応するエネルギー固有値の情報を読み取る
     // inputファイルの磁化の値は飽和磁化で規格化済みであるとする
     ifstream input(input_file);
-    string str_tmp;
+    string str_tmp, str_buf, str_conma_buf;
     double mag_tmp, energy_tmp;
 
-    while (getline(input, str_tmp))
+    while (getline(input, str_buf))
     {
-        stringstream ss;
-        ss << str_tmp;
-        ss >> mag_tmp >> energy_tmp;
-        M.push_back(mag_tmp);
-        e_min.push_back(energy_tmp);
+        istringstream i_stream(str_buf);
+        while (getline(i_stream, str_conma_buf, ','))
+        {
+            if (M.size() == e_min.size())
+            {
+                M.push_back(stof(str_conma_buf));
+            }
+            else
+            {
+                e_min.push_back(stof(str_conma_buf));
+            }
+        }
     }
 
     input.close();
 
     // M0についてはここで格納する
-    // plot_h.push_back(0);
-    // plot_m.push_back(M[0]);
+    plot_h.push_back(0);
+    plot_m.push_back(M[0]);
 
     for (int i = 0; i < M.size() - 1; i++)
     {
@@ -118,19 +125,16 @@ void calc_MHcurve_data(double J_red, double J_green, double J_blue, std::string 
 
 int main(int argc, char *argv[])
 {
-    int start_up_spin, end_up_spin;
     double J_red, J_green, J_blue;
     std::string input_file, output_file;
 
-    if (argc == 8)
+    if (argc == 6)
     {
-        start_up_spin = atoi(argv[1]);
-        end_up_spin = atoi(argv[2]);
-        J_red = atof(argv[3]);
-        J_green = atof(argv[4]);
-        J_blue = atof(argv[5]);
-        input_file = argv[6];
-        output_file = argv[7];
+        J_red = atof(argv[1]);
+        J_green = atof(argv[2]);
+        J_blue = atof(argv[3]);
+        input_file = argv[4];
+        output_file = argv[5];
 
         calc_MHcurve_data(J_red, J_green, J_blue, input_file, output_file);
     }
