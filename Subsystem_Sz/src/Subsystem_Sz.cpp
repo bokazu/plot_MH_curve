@@ -5062,7 +5062,7 @@ void Subsystem_Sz::MP_schedule_calc_beta_oddstep(const int tri_mat_dim, const in
   }
 };
 
-void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int start_up_spin, int end_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_szz_rel, char c)
+void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int start_up_spin, int end_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_sz_rel, std::string dir_output_spin_szz_rel, char c)
 {
   ofstream eval_data(dir_output_energy);
   vector<double> Magnetization; // 磁化の値を格納するための配列
@@ -5102,10 +5102,11 @@ void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_
       int total_site_num = H.tot_site_A + H.tot_site_B;
       // 磁化空間ごとにspin相関の計算結果を出力するファイルを用意する
       string dir_sxx = dir_output_spin_sxx_rel + "/sxx_" + to_string(up) + ".csv";
+      string dir_sz = dir_output_spin_sz_rel + "/sz_" + to_string(up) + ".csv";
       string dir_szz = dir_output_spin_szz_rel + "/szz_" + to_string(up) + ".csv";
 
       H.calc_sxx_rel(total_site_num, dir_sxx);
-      H.calc_szz_rel(total_site_num, dir_szz);
+      H.calc_szz_rel(total_site_num, dir_sz, dir_szz);
 
       cout << H << endl;
       cout << H.tot_Sz[0].Eig.eigen_mat[0][0] << endl;
@@ -5252,8 +5253,97 @@ void MP_schedule_plot_MHcurve(int sys_num, int sys_site_A, int sys_site_B, int m
 }
 
 // spin-spin相関の計算<Ψ|S_i^zS_j^z|Ψ>(メモリアクセス回数を配慮)
-void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
+// spin相関<Ψ|S_i^z|Ψ>の計算
+void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output_sz, std::string dir_output_szz)
 {
+  /*-------------Open MP private variables-------------*/
+  int No, n, m, site_i, site_j;
+  int state_num_of_A, state_num_of_B;
+  bool is_up_spin_i, is_up_spin_j;
+  double sign; // S_i^zS_j^z|Ψ>の符号を代入する sign = ±1
+  double evec_val;
+  /*---------------------------------------------------*/
+  //============================ 1. <S_i^z>を全サイトに渡って計算する=====================================
+  double *sz_iA = new double[tot_site_A];
+  double *sz_iB = new double[tot_site_B];
+  MP_schedule_vec_init(tot_site_A, sz_iA);
+  MP_schedule_vec_init(tot_site_B, sz_iB);
+
+  FILE *fsz_i;
+  fsz_i = fopen(dir_output_sz.c_str(), "w");
+  for (No = 0; No < pair_num; No++)
+  {
+// 状態の用意
+#pragma omp parallel for private(n, m, state_num_of_A, site_i, is_up_spin_i, evec_val) schedule(runtime) reduction(+ : sz_iA[ : tot_site_A])
+    for (m = 0; m < tot_Sz[No].bm_B_size; m++)
+    {
+      for (n = 0; n < tot_Sz[No].bm_A_size; n++)
+      {
+        //|n>_Aの用意
+        state_num_of_A = tot_Sz[No].bm_A[n];
+        boost::dynamic_bitset<> ket_A(tot_site_A, state_num_of_A);
+        // 固有ベクトルの用意(szzでは状態が遷移しないのでここで用意する)
+        evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+
+        // site番号(site in A)についてのloop
+        for (site_i = 0; site_i < tot_site_A; site_i++)
+        {
+          is_up_spin_i = ket_A.test(site_i);
+          if (is_up_spin_i)
+          {
+            sz_iA[site_i] += 0.5 * evec_val * evec_val;
+          }
+          else
+          {
+            sz_iA[site_i] += -0.5 * evec_val * evec_val;
+          }
+        }
+      }
+    }
+  }
+
+  for (No = 0; No < pair_num; No++)
+  {
+// 状態の用意
+#pragma omp parallel for private(n, m, state_num_of_B, site_j, is_up_spin_j, evec_val) schedule(runtime) reduction(+ : sz_iB[ : tot_site_B])
+    for (m = 0; m < tot_Sz[No].bm_B_size; m++)
+    {
+      //|m>_Bの用意
+      state_num_of_B = tot_Sz[No].bm_B[m];
+      boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
+      for (n = 0; n < tot_Sz[No].bm_A_size; n++)
+      {
+        // 固有ベクトルの用意(szzでは状態が遷移しないのでここで用意する)
+        evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
+        for (site_j = 0; site_j < tot_site_B; site_j++)
+        {
+          is_up_spin_j = ket_B.test(site_j);
+          if (is_up_spin_j)
+          {
+            sz_iB[site_j] += 0.5 * evec_val * evec_val;
+          }
+          else
+          {
+            sz_iB[site_j] += -0.5 * evec_val * evec_val;
+          }
+        }
+      }
+    }
+  }
+
+  for (int i = 0; i < tot_site_A; i++)
+  {
+    fprintf(fsz_i, "%d , %f\n", i, sz_iA[i]);
+  }
+
+  for (int j = 0; j < tot_site_B; j++)
+  {
+    fprintf(fsz_i, "%d , %f \n", j, sz_iB[j]);
+  }
+  fclose(fsz_i);
+  //=============================================================================================================
+
+  //=================================== 2. 全サイトスピン相関<S_i^zS_j^z>を計算する======================================
   double start_szz, end_szz;
   start_szz = omp_get_wtime();
   // 各サイトごとのspin相関の値を記録す料の配列の確保
@@ -5262,21 +5352,13 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
   double *rel_ij = new double[dim2];
   MP_schedule_vec_init(dim2, rel_ij);
 
-  /*-------------Open MP private variables-------------*/
-  int No, n, m, site_i, site_j;
-  int state_num_of_A, state_num_of_B;
-  bool is_up_spin_i, is_up_spin_j;
-  double sign; // S_i^zS_j^z|Ψ>の符号を代入する sign = ±1
-  double evec_val;
-  /*---------------------------------------------------*/
-
   /*----各siteごとのspin-spin相関の結果をoutputするためのファイル-----*/
   FILE *fp;
-  fp = fopen(dir_output.c_str(), "w");
+  fp = fopen(dir_output_szz.c_str(), "w");
 
   double start_szz_A, end_szz_A, time_szz_A;
-  fprintf(fp, "i in A   j in A   rel_ij\n");
-  fprintf(fp, "---------------------------------------------\n");
+  fprintf(fp, "i in A   j in A      rel_ij       <S_i^zS_j^z> - <S_i^z><S_j^z> \n");
+  fprintf(fp, "----------------------------------------------------------------\n");
   start_szz_A = omp_get_wtime();
   // 部分空間についてのloop
   for (No = 0; No < pair_num; No++)
@@ -5322,13 +5404,13 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
   {
     for (int j = i; j < tot_site_A; j++)
     {
-      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij[j + i * dim]);
+      fprintf(fp, "%d , %d , %f , %f \n", i, j, rel_ij[j + i * dim], rel_ij[j + i * dim] - sz_iA[i] * sz_iA[j]);
     }
   }
 
   MP_schedule_vec_init(dim2, rel_ij);
-  fprintf(fp, "i in B   j in B   rel_ij\n");
-  fprintf(fp, "---------------------------------------------\n");
+  fprintf(fp, "i in B   j in B      rel_ij       <S_i^zS_j^z> - <S_i^z><S_j^z> \n");
+  fprintf(fp, "----------------------------------------------------------------\n");
 
   double start_szz_B, end_szz_B;
   start_szz_B = omp_get_wtime();
@@ -5377,13 +5459,13 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
   {
     for (int j = i; j < tot_site_B; j++)
     {
-      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij[j + i * dim]);
+      fprintf(fp, "%d , %d , %f , %f \n", i, j, rel_ij[j + i * dim], rel_ij[j + i * dim] - sz_iB[i] * sz_iB[j]);
     }
   }
 
   MP_schedule_vec_init(dim2, rel_ij);
-  fprintf(fp, "i in A   j in B   rel_ij\n");
-  fprintf(fp, "---------------------------------------------\n");
+  fprintf(fp, "i in A   j in B      rel_ij       <S_i^zS_j^z> - <S_i^z><S_j^z> \n");
+  fprintf(fp, "----------------------------------------------------------------\n");
 
   double start_szz_AB, end_szz_AB;
   start_szz_AB = omp_get_wtime();
@@ -5437,12 +5519,14 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output)
   {
     for (int j = 0; j < tot_site_B; j++)
     {
-      fprintf(fp, "%d , %d , %f\n", i, j, rel_ij[j + dim * i]);
+      fprintf(fp, "%d , %d , %f , %f \n", i, j, rel_ij[j + dim * i], rel_ij[j + dim * i] - sz_iA[i] * sz_iB[j]);
     }
   }
 
   fclose(fp);
   delete[] rel_ij;
+  delete[] sz_iA;
+  delete[] sz_iB;
 }
 
 void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)

@@ -180,8 +180,8 @@ public:
     void MP_schedule_mm_init(const int row_dim, const int col_dim, double **V);
 
     // spin-spin相関の計算
-    void calc_szz_rel(const int site_num, std::string dir_output); // <Ψ|S_i^zS_j^z|Ψ>
-    void calc_sxx_rel(const int site_num, std::string dir_output); // <Ψ|S_i^xS_j^x|Ψ>
+    void calc_szz_rel(const int site_num, std::string dir_output_sz, std::string dir_output_szz); // <Ψ|S_i^zS_j^z|Ψ>
+    void calc_sxx_rel(const int site_num, std::string dir_output);                                // <Ψ|S_i^xS_j^x|Ψ>
 
     // 特定のplateauについて相互作用のパラメータを変化させたときのwidthの変化を調べる
     // M-H curveについてのデータファイルが揃っていることが前提
@@ -238,7 +238,7 @@ void MP_schedule_vec_init(int dim, T *vec)
 void MP_schedule_plot_MHcurve(double J_red, double J_green, double J_blue, std::string dir_input, std::string dir_output);
 
 // ある範囲の磁化でのエネルギー固有値を計算する
-void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int start_up_spin, int end_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_szz_rel, char c = 'N');
+void ranged_calc_gs_energy(int sys_num, int sys_site_A, int sys_site_B, int max_up_spin, int start_up_spin, int end_up_spin, double J_red, double J_green, double J_blue, std::vector<std::string> &file, std::string dir_output_energy, std::string dir_output_time, std::string dir_output_spin_sxx_rel, std::string dir_output_spin_sz_rel, std::string dir_output_spin_szz_rel, char c = 'N');
 
 // コンビネーションnCrの計算を行う
 int comb(int n, int r);

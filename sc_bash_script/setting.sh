@@ -1,17 +1,7 @@
 #!/bin/bash
-
-# ===================並列化の設定===========================                                         
-#SBATCH -p F1cpu                                                                                     
-#SBATCH -N 1                                                                                         
-#SBATCH -n 1                                                                                         
-#SBATCH -c 128                                                                                       
-#SBATCH --job-name="MHdata2(distorted)"                                                              
-#SBATCH --mail-type=BEGIN                                                                            
-#SBATCH --mail-type=END                                                                              
-#SBATCH --mail-user=6222530@ed.tus.ac.jp 
-
-ParamNum=20
-JOB_NUM=$((2 * ParamNum)) #36site系の計算ではこちらを利用する
+ParamNum=3
+JOB_NUM=2 #36site系の計算ではこちらを利用する
+JOB_ID=1
 LATTICE="kagome"
 SITENUM="36"
 Lanczos_type="N" #lanczos法で固有値のみ求める => N /固有ベクトルも求める => V
@@ -66,33 +56,33 @@ for p in $(seq 1 ${ParamNum});do
     mkdir ./output/${LATTICE}/${SITENUM}/output_${output_dir_base}/time
     #=====================================================================================
     
-
-    #===============settingsディレクトリを用意しJsetファイルをコピーする===============
-    for job in $(seq 1 ${JOB_NUM});do
-        settings_dir="./settings_param${p}_job${job}"
-        mkdir $settings_dir
-        cp "$dir_jset_output"/* $settings_dir
-    done
-    #==================================================================================
-
     #system_info.txtはoutputディレクトリにコピーしておく
     cp $dir_jset_output/system_info.txt ./output/${LATTICE}/${SITENUM}site/output_${output_dir_base}
+
+    #===============settingsディレクトリを用意しJsetファイルをコピーする===============
+    settings_dir="./settings_param${p}"
+    mkdir $settings_dir
+    cp "$dir_jset_output"/* $settings_dir
+    dir_jset0="./${setting_dir}/jset0.txt"
+    dir_jset1="./${setting_dir}/jset1.txt"
+    dir_jset2="./${setting_dir}/jset2.txt"
+    #==================================================================================
 
     for job in $(seq 1 ${JOB_NUM});do
         #system info.txtから系のサイト数などの情報を読み取るための処理
         for j in $(seq 1 9); do
         var="var$j"
-        read -r $var < <(sed "${j}q;d" ./settings_param${p}_job${job}/system_info.txt)
+        read -r $var < <(sed "${j}q;d" ./settings_param${p}/system_info.txt)
         done
 
         #実行ファイルの作成
-        PLOT_MH_EXE_FILE="main_param${p}_job${job}"
+        PLOT_MH_EXE_FILE="main_param${p}_job${JOB_ID}"
         export PLOT_MH_EXE_FILE
         cmake --build build
 
         export KMP_AFFINITY=scatter
         export OMP_SCHEDULE="dynamic,3"
-        if (($job % 2 == 0)); then
+        if (($job == 1)); then
             start_up_spin=$var5
             end_up_spin=$((var5 + 1))
             #[ToDo]jsetのディレクトリも渡す！
@@ -102,7 +92,8 @@ for p in $(seq 1 ${ParamNum});do
             end_up_spin=$var6
             #[ToDo]jsetのディレクトリも渡す！
             sbatch ./F1cpu.sh "$var2" "$var3" "$var4" "$var5" "$var6" "$var7" "$var8" "$var9" "$dir_jset0" "$dir_jset1" "$dir_jset2" "$dir_output_eval" "$dir_output_time" "$dir_output_sxx_rel" "$dir_output_szz_rel" "$start_up_spin" "$end_up_spin" "$Lanczos_type"
+        JOB_ID=`expr $JOB_ID + 1`
     done
 done
 
-scp k038112@ohtaka.issp.u-tokyo.ac.jp:output/kagome/27site/ .
+scp -r k038112@ohtaka.issp.u-tokyo.ac.jp:output/kagome/27site/ .

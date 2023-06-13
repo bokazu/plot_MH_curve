@@ -7,8 +7,8 @@ terminal_output_file="./terminal_output_${LATTICE}_${SITENUM}.txt"
 touch $terminal_output_file
 
 #相互作用の大小関係は J_green < J_red < J_blue = 1
-J_red=1.0
-J_green=1.0
+J_red=0.84
+J_green=0.01
 J_blue=1.0 #J_blueは1で固定
 J_red_inc_steps=0.0
 
@@ -58,6 +58,7 @@ for p in $(seq 1 ${ParamNum});do
     output_dir_base=$(basename "$dir_jset_output")
     
     dir_output_sxx_rel="./output/${LATTICE}/${SITENUM}site/output_${output_dir_base}/sxx_rel"
+    dir_output_sz_rel="./output/${LATTICE}/${SITENUM}site/output_${output_dir_base}/sz_rel"
     dir_output_szz_rel="./output/${LATTICE}/${SITENUM}site/output_${output_dir_base}/szz_rel"
     dir_output_time="./output/${LATTICE}/${SITENUM}site/output_${output_dir_base}/time"
     file_output_eval="./output/${LATTICE}/${SITENUM}site/output_${output_dir_base}/eigen_val.csv"
@@ -66,6 +67,7 @@ for p in $(seq 1 ${ParamNum});do
     mkdir ./output/${LATTICE}/${SITENUM}site/output_${output_dir_base} | tee -a $terminal_output_file
     mkdir $dir_output_sxx_rel | tee -a $terminal_output_file
     mkdir $dir_output_szz_rel | tee -a $terminal_output_file
+    mkdir $dir_output_sz_rel | tee -a $terminal_output_file
     mkdir $dir_output_time | tee -a $terminal_output_file
     #=====================================================================================
 
@@ -82,9 +84,9 @@ for p in $(seq 1 ${ParamNum});do
     export KMP_AFFINITY=scatter
     export OMP_SCHEDULE="dynamic,3"
 
-    start_up_spin=$((var6 - 3))
-    end_up_spin=$((var6 - 3))
-    ./build/${PLOT_MH_EXE_FILE} "$var2" "$var3" "$var4" "$var5" "$var6" "$var7" "$var8" "$var9" "$dir_jset0" "$dir_jset1" "$dir_jset2" "$file_output_eval" "$file_output_time" "$dir_output_sxx_rel" "$dir_output_szz_rel" "$start_up_spin" "$end_up_spin" "$Lanczos_type" | tee -a $terminal_output_file
+    start_up_spin=$var5
+    end_up_spin=$var6
+    ./build/${PLOT_MH_EXE_FILE} "$var2" "$var3" "$var4" "$var5" "$var6" "$var7" "$var8" "$var9" "$dir_jset0" "$dir_jset1" "$dir_jset2" "$file_output_eval" "$file_output_time" "$dir_output_sxx_rel" "$dir_output_sz_rel" "$dir_output_szz_rel" "$start_up_spin" "$end_up_spin" "$Lanczos_type" | tee -a $terminal_output_file
     
     #===================jsetファイルをsettings_dirから削除する==============
     echo "Deleting files in ./settings" | tee -a $terminal_output_file

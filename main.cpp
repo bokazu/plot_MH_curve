@@ -21,10 +21,10 @@ int main(int argc, char *argv[])
     vector<string> file;
     int sys_num, sys_site_A, sys_site_B, min_up_spin, max_up_spin, start_up_spin, end_up_spin;
     double J_red, J_green, J_blue;
-    std::string file_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel;
+    std::string file_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel, dir_output_spin_sz_rel;
     char *lanczos_type;
     cout << "argc = " << argc << endl;
-    if (argc == 19)
+    if (argc == 20)
     {
         sys_num = stoi(argv[1]);
         sys_site_A = stoi(argv[2]);
@@ -40,10 +40,11 @@ int main(int argc, char *argv[])
         file_output_eval = argv[12];
         dir_output_time = argv[13];
         dir_output_spin_sxx_rel = argv[14];
-        dir_output_spin_szz_rel = argv[15];
-        start_up_spin = stoi(argv[16]);
-        end_up_spin = stoi(argv[17]);
-        lanczos_type = argv[18];
+        dir_output_spin_sz_rel = argv[15];
+        dir_output_spin_szz_rel = argv[16];
+        start_up_spin = stoi(argv[17]);
+        end_up_spin = stoi(argv[18]);
+        lanczos_type = argv[19];
 
         cout << "input : scuccess\n";
         cout << "J_red                 : " << J_red << endl;
@@ -52,6 +53,7 @@ int main(int argc, char *argv[])
         cout << "- File of eigen value : " << file_output_eval << endl;
         cout << "- File of time        : " << dir_output_time << endl;
         cout << "- Dir of <SxSx>       : " << dir_output_spin_sxx_rel << endl;
+        cout << "- Dir of <Sz>         : " << dir_output_spin_sz_rel << endl;
         cout << "- Dir of <SzSz>       : " << dir_output_spin_szz_rel << endl;
     }
     else
@@ -63,5 +65,5 @@ int main(int argc, char *argv[])
         }
     }
 
-    ranged_calc_gs_energy(sys_num, sys_site_A, sys_site_B, max_up_spin, start_up_spin, end_up_spin, J_red, J_green, J_blue, file, file_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_szz_rel, *lanczos_type);
+    ranged_calc_gs_energy(sys_num, sys_site_A, sys_site_B, max_up_spin, start_up_spin, end_up_spin, J_red, J_green, J_blue, file, file_output_eval, dir_output_time, dir_output_spin_sxx_rel, dir_output_spin_sz_rel, dir_output_spin_szz_rel, *lanczos_type);
 }

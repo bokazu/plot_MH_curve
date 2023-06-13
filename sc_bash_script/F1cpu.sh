@@ -5,7 +5,7 @@
 #SBATCH -N 1                                                                                         
 #SBATCH -n 1                                                                                         
 #SBATCH -c 128                                                                                       
-#SBATCH --job-name="MHdata2(distorted)"                                                              
+#SBATCH --job-name="MHdata"                                                              
 #SBATCH --mail-type=BEGIN                                                                            
 #SBATCH --mail-type=END                                                                              
 #SBATCH --mail-user=6222530@ed.tus.ac.jp 
@@ -28,5 +28,7 @@ DIR_OUTPUT_SZZ_REL="$15"
 START_UP_SPIN="$16"
 END_UP_SPIN="$17"
 LANCZOS_TYPE="$18"
+
+echo "$PLOT_MH_EXE_FILE"
 
 srun $PLOT_MH_EXE_FILE "$SYS_NUM" "$SYS_SITE_A" "$SYS_SITE_B" "$MIN_UP_SPIN" "$MAX_UP_SPIN" "$J_RED" "$J_GREEN" "$J_BLUE" "$DIR_JSET0" "$DIR_JSET1" "$DIR_JSET2" "$DIR_OUTPUT_EVAL" "$DIR_OUTPUT_TIME" "$DIR_OUTPUT_SXX_REL" "$DIR_OUTPUT_SZZ_REL" "$START_UP_SPIN" "$END_UP_SPIN" "$LANCZOS_TYPE"
