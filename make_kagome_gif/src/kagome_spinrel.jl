@@ -3,6 +3,7 @@
 module kagome_spinrel
 using Plots
 using Measures
+using LaTeXStrings
 
     function plot_27site_MH_curve_with_Highrigt(MHdata_file, num_of_M)
         h=zeros(15)
@@ -20,11 +21,11 @@ using Measures
 
         h[15] = 100
         M[15] = 1.0
-        plt = plot(h,M,line=:steppre,xlabel="h", ylabel="M/M_sat",xlims=(0,3.5),ylims=(0,1),title="Magnetic curve",legend=false)
+        plt = plot(h,M,line=:steppre,xlabel=L"h", ylabel=L"M/M_{sat}",xlims=(0,3.5),ylims=(0,1),title="Magnetization curve",titleposition=:center,legend=false, titlegap=2)
         if num_of_M < 26
-            plot!(plt, [h[num_of_M-13],h[num_of_M-12]],[M[num_of_M-12],M[num_of_M-12]], linecolor=:red)
+            plot!(plt, [h[num_of_M-13],h[num_of_M-12]],[M[num_of_M-12],M[num_of_M-12]], lw=3,linecolor=:red, titlegap=2)
         elseif num_of_M == 26
-            plot!(plt, [h[num_of_M-13],3.5],[M[num_of_M-12],M[num_of_M-12]], linecolor=:red)
+            plot!(plt, [h[num_of_M-13],3.5],[M[num_of_M-12],M[num_of_M-12]],lw=3, linecolor=:red, titlegap=2)
         end
         return plt
     end
@@ -132,8 +133,9 @@ using Measures
         end
 
         #格子点のplot
-         plt_szz=Plots.plot(title="<S_i^zS_j^z>",showaxis=false,margin=0mm)
-         plt_szz_c=Plots.plot(title="<S_i-^z,S_j^z>_C",showaxis=false,margin=0mm)
+         plt_szz=Plots.plot(title=L"$\angle S_i^zS_j^z \rangle$",showaxis=false,margin=0mm)
+            title_c = L"$\langle \hat{S_i^z}\hat{S_j^z} \rangle_C$"
+         plt_szz_c=Plots.plot(title=title_c,titleposition=:center,showaxis=false,margin=0mm)
 
         for l=1:length(sz)
             if sz[l] >= 0
@@ -385,7 +387,8 @@ using Measures
         end
 
         #格子点のplot
-        plt_sxx=Plots.plot()
+        title= L"$\langle \hat{S_i^x}\hat{S_j^x} \rangle_C$"
+        plt_sxx=Plots.plot(title=title,titleposition=:center,titlevspan=0.2,showaxis=false,margin=0mm)
     
         for l=1:length(sz)
             if sz[l] >= 0
