@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-eval_data_dir="../../../output/kagome/27site/output_param1"
+eval_data_dir="../../../output/kagome/36site/distorted/param3"
 eval_data_file="${eval_data_dir}/eigen_val.csv"
 MH_data_file="${eval_data_dir}/MHdata.csv"
 

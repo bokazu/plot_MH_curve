@@ -5357,8 +5357,8 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output_sz, s
   fp = fopen(dir_output_szz.c_str(), "w");
 
   double start_szz_A, end_szz_A, time_szz_A;
-  fprintf(fp, "i in A   j in A      rel_ij       <S_i^zS_j^z> - <S_i^z><S_j^z> \n");
-  fprintf(fp, "----------------------------------------------------------------\n");
+  // fprintf(fp, "i in A   j in A      rel_ij       <S_i^zS_j^z> - <S_i^z><S_j^z> \n");
+  // fprintf(fp, "----------------------------------------------------------------\n");
   start_szz_A = omp_get_wtime();
   // 部分空間についてのloop
   for (No = 0; No < pair_num; No++)
@@ -5409,8 +5409,8 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output_sz, s
   }
 
   MP_schedule_vec_init(dim2, rel_ij);
-  fprintf(fp, "i in B   j in B      rel_ij       <S_i^zS_j^z> - <S_i^z><S_j^z> \n");
-  fprintf(fp, "----------------------------------------------------------------\n");
+  // fprintf(fp, "i in B   j in B      rel_ij       <S_i^zS_j^z> - <S_i^z><S_j^z> \n");
+  // fprintf(fp, "----------------------------------------------------------------\n");
 
   double start_szz_B, end_szz_B;
   start_szz_B = omp_get_wtime();
@@ -5464,8 +5464,8 @@ void Subsystem_Sz::calc_szz_rel(const int site_num, std::string dir_output_sz, s
   }
 
   MP_schedule_vec_init(dim2, rel_ij);
-  fprintf(fp, "i in A   j in B      rel_ij       <S_i^zS_j^z> - <S_i^z><S_j^z> \n");
-  fprintf(fp, "----------------------------------------------------------------\n");
+  // fprintf(fp, "i in A   j in B      rel_ij       <S_i^zS_j^z> - <S_i^z><S_j^z> \n");
+  // fprintf(fp, "----------------------------------------------------------------\n");
 
   double start_szz_AB, end_szz_AB;
   start_szz_AB = omp_get_wtime();
@@ -5551,8 +5551,8 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
   fp = fopen(dir_output.c_str(), "w");
 
   double start_sxx_A, end_sxx_A;
-  fprintf(fp, "i in A   j in A   rel_ij\n");
-  fprintf(fp, "---------------------------------------------\n");
+  // fprintf(fp, "i in A   j in A   rel_ij\n");
+  // fprintf(fp, "---------------------------------------------\n");
 
   start_sxx_A = omp_get_wtime();
   for (No = 0; No < pair_num; No++)
@@ -5612,8 +5612,8 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
   }
 
   MP_schedule_vec_init(dim2, rel_ij);
-  fprintf(fp, "i in B   j in B   rel_ij\n");
-  fprintf(fp, "---------------------------------------------\n");
+  // fprintf(fp, "i in B   j in B   rel_ij\n");
+  // fprintf(fp, "---------------------------------------------\n");
   double start_sxx_B, end_sxx_B;
   start_sxx_B = omp_get_wtime();
   // 部分空間についてのloop
@@ -5676,8 +5676,8 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
   }
 
   MP_schedule_vec_init(dim2, rel_ij);
-  fprintf(fp, "i in A   j in B   rel_ij\n");
-  fprintf(fp, "---------------------------------------------\n");
+  // fprintf(fp, "i in A   j in B   rel_ij\n");
+  // fprintf(fp, "---------------------------------------------\n");
   double start_sxx_AB, end_sxx_AB;
   start_sxx_AB = omp_get_wtime();
 
