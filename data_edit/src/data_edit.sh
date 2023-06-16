@@ -1,6 +1,6 @@
 #!/bin/bash
 
-szz_input_file_list=(../settings/szz_*)
+szz_input_file_list=(../settings/sxx_*)
 sz_input_file_list=(../settings/sz_*)
 
 rm ../output/*
