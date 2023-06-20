@@ -19,15 +19,93 @@ using LaTeXStrings
             end
         end
 
-        h[15] = 100
-        M[15] = 1.0
-        plt = plot(h,M,line=:steppre,xlabel=L"h", ylabel=L"M/M_{sat}",xlims=(0,3.5),ylims=(0,1),title="Magnetization curve",titleposition=:center,legend=false, titlegap=2)
-        if num_of_M < 26
-            plot!(plt, [h[num_of_M-13],h[num_of_M-12]],[M[num_of_M-12],M[num_of_M-12]], lw=3,linecolor=:red, titlegap=2)
-        elseif num_of_M == 26
-            plot!(plt, [h[num_of_M-13],3.5],[M[num_of_M-12],M[num_of_M-12]],lw=3, linecolor=:red, titlegap=2)
+        h[15] = 10
+        M[15] = M[14]
+
+        plt = plot(h,M,line=:steppost,xlabel=L"h", ylabel=L"M/M_{sat}",xlims=(0,3.5),ylims=(0,1),title="Magnetization curve",titleposition=:center,legend=false, titlegap=2)
+        if num_of_M < 27
+            plot!(plt, [h[num_of_M-13],h[num_of_M-12]],[M[num_of_M-13],M[num_of_M-13]],line=:steppost, lw=3,linecolor=:red, titlegap=2)
+        elseif num_of_M == 27
+            plot!(plt, [h[num_of_M-13],3.5],[M[num_of_M-13],M[num_of_M-13]],line=:steppost,lw=3, linecolor=:red, titlegap=2)
         end
         return plt
+    end
+
+    function plot_27site_kagome_lattice(J_red,J_green,J_blue)
+     #1行目の格子点のx,y座標
+     Y1 = 0
+     x1=[0.0,3.0,6.0]
+     y1=[0.0,0.0,0.0]
+
+     #2行目の格子点のx,y座標
+     Y2 = Y1-3*sqrt(3)/4
+     x2=[-9/4,-3/4,3/4,9/4,15/4,21/4,27/4]
+     y2=[Y2,    Y2,  Y2,Y2,  Y2,  Y2,  Y2]
+
+     #3行目の格子点のx,y座標
+     Y3 = Y2-3*sqrt(3)/4
+     x3=[-3/2, 3/2,9/2]
+     y3=[Y3,Y3,Y3]
+
+     #4行目の格子点のx,y座標
+     Y4 = Y3-3*sqrt(3)/4
+     x4=[-15/4, -9/4, -3/4, 3/4, 9/4, 15/4, 21/4]
+     y4=[Y4   ,   Y4,   Y4,  Y4,  Y4,   Y4,   Y4]
+
+     #5行目の格子点のx,y座標
+     Y5 = Y4-3*sqrt(3)/4
+     x5=[-3.0,0.0,3.0]
+     y5=[Y5, Y5, Y5]
+
+     #6行目の格子点のx,y座標
+     Y6 = Y5-3*sqrt(3)/4
+     x6=[-21/4,-15/4, -9/4, -3/4, 3/4, 9/4, 15/4]
+     y6=[Y6   ,   Y6,   Y6,  Y6,  Y6,   Y6,   Y6]
+
+    #7行目の格子点のx,y座標
+     Y7 = Y6-3*sqrt(3)/4
+     x7=[-9/2,-3/2, 3/2]
+     y7=[ Y7,Y7,Y7]
+
+     X=Float64[]
+     Y=Float64[]
+     X=copy(x1)
+     append!(X,x2)
+     append!(X,x3)
+     append!(X,x4)
+     append!(X,x5)
+     append!(X,x6)
+     append!(X,x7)
+     Y=copy(y1)
+     append!(Y,y2)
+     append!(Y,y3)
+     append!(Y,y4)
+     append!(Y,y5)
+     append!(Y,y6)
+     append!(Y,y7)
+
+     #2列目のx座標(y座標はYと同じ)
+     X_2 = X.+9
+     #3列目のx座標(y座標はYと同じ)
+     X_3 = X.+18
+
+     #2行目のx,y座標
+     X_21 = X .-4.5
+     X_22 = X_2 .-4.5
+     X_23 = X_3 .-4.5
+     Y_2= Y .-(6*3*sqrt(3)/4)
+
+     #3行目のx,y座標
+     X_31 = X_21 .-4.5
+     X_32 = X_22 .-4.5
+     X_33 = X_23 .-4.5
+     Y_3 = Y_2 .-(6*3*sqrt(3)/4)
+
+     bond_from=[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,11,11,12,12,13,13,14,14,15,15,16,16,17,17,18,18,19,19,21,21,22,22,23,23,24,24,25,25,26,26,27,27,28,28,29,29]
+     bond_to=[5,6,7,8,9,10,5,11,6,11,7,12,8,12,9,13,10,13,15,16,17,18,19,20,15,21,16,21,17,22,18,22,19,23,20,23,25,26,27,28,29,30,25,31,26,31,27,32,28,32,29,33,30,33]
+    
+     bond_strength=[]
+    
     end
 
 
@@ -137,63 +215,7 @@ using LaTeXStrings
             title_c = L"$\langle \hat{S_i^z}\hat{S_j^z} \rangle_C$"
          plt_szz_c=Plots.plot(title=title_c,titleposition=:center,showaxis=false,margin=0mm)
 
-        for l=1:length(sz)
-            if sz[l] >= 0
-                m_color=:red
-                m_size=sz[l] * marker_magnification
-                plot!(plt_szz,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_31[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_32[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_33[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            else
-                m_color=:blue        
-                m_size=abs(sz[l]) * marker_magnification
-                plot!(plt_szz,[X[l]],[Y[l]],label="",st=:scatter,  ms=m_size,msw=0, mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_31[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_32[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz,[X_33[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            end
-        end
-
-        for l=1:length(sz)
-            if sz[l] >= 0
-                m_color=:red
-                m_size = sz[l] * marker_magnification
-                plot!(plt_szz_c,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_31[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_32[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_33[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            else
-                m_color=:blue        
-                m_size = abs(sz[l]) * marker_magnification
-                plot!(plt_szz_c,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_31[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_32[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_szz_c,[X_33[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            end
-        end
-
-        #<S_i^zS_j^z>のplot
+                 #<S_i^zS_j^z>のplot
         for i=1:length(bond_from)
             if szz_rel[i] >= 0
                 COLOR=:red
@@ -287,6 +309,64 @@ using LaTeXStrings
                 framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
             end
         end
+
+        for l=1:length(sz)
+            if sz[l] >= 0
+                m_color=:red
+                m_size=sz[l] * marker_magnification
+                plot!(plt_szz,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_31[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_32[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_33[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+            else
+                m_color=:blue        
+                m_size=abs(sz[l]) * marker_magnification
+                plot!(plt_szz,[X[l]],[Y[l]],label="",st=:scatter,  ms=m_size,msw=0, mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_31[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_32[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz,[X_33[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+            end
+        end
+
+        for l=1:length(sz)
+            if sz[l] >= 0
+                m_color=:red
+                m_size = sz[l] * marker_magnification
+                plot!(plt_szz_c,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_31[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_32[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_33[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+            else
+                m_color=:blue        
+                m_size = abs(sz[l]) * marker_magnification
+                plot!(plt_szz_c,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_31[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_32[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_szz_c,[X_33[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+            end
+        end
+
+
 
         savefig(output_szz_c_filename)
         return plt_szz, plt_szz_c
@@ -387,9 +467,40 @@ using LaTeXStrings
         end
 
         #格子点のplot
-        title= L"$\langle \hat{S_i^x}\hat{S_j^x} \rangle_C$"
+        title= L"$\langle \hat{S_i^x}\hat{S_j^x} \rangle$"
         plt_sxx=Plots.plot(title=title,titleposition=:center,titlevspan=0.2,showaxis=false,margin=0mm)
-    
+
+                #<S_ixzS_j^x>のplot
+                for i=1:length(bond_from)
+                    if sxx_rel[i] >= 0
+                        COLOR=:red
+                        LW=sxx_rel[i]*line_magnification
+                        plot!(plt_sxx, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    else
+                        COLOR=:blue
+                        LW=abs(sxx_rel[i])*line_magnification
+                        plot!(plt_sxx, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                        plot!(plt_sxx, [X_2[bond_from[i]],X_2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                        plot!(plt_sxx, [X_3[bond_from[i]],X_3[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                        plot!(plt_sxx, [X_21[bond_from[i]],X_21[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                        plot!(plt_sxx, [X_22[bond_from[i]],X_22[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                        plot!(plt_sxx, [X_23[bond_from[i]],X_23[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                        plot!(plt_sxx, [X_31[bond_from[i]],X_31[bond_to[i]]],[Y_3[bond_from[i]],Y_3[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                        plot!(plt_sxx, [X_32[bond_from[i]],X_32[bond_to[i]]],[Y_3[bond_from[i]],Y_3[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                        plot!(plt_sxx, [X_33[bond_from[i]],X_33[bond_to[i]]],[Y_3[bond_from[i]],Y_3[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                        framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    end
+                end
+
         for l=1:length(sz)
             if sz[l] >= 0
                 m_color=:red
@@ -418,36 +529,7 @@ using LaTeXStrings
             end
         end
 
-        #<S_ixzS_j^x>のplot
-        for i=1:length(bond_from)
-            if sxx_rel[i] >= 0
-                COLOR=:red
-                LW=sxx_rel[i]*line_magnification
-                plot!(plt_sxx, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            else
-                COLOR=:blue
-                LW=abs(sxx_rel[i])*line_magnification
-                plot!(plt_sxx, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_sxx, [X_2[bond_from[i]],X_2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_sxx, [X_3[bond_from[i]],X_3[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_sxx, [X_21[bond_from[i]],X_21[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_sxx, [X_22[bond_from[i]],X_22[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_sxx, [X_23[bond_from[i]],X_23[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_sxx, [X_31[bond_from[i]],X_31[bond_to[i]]],[Y_3[bond_from[i]],Y_3[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_sxx, [X_32[bond_from[i]],X_32[bond_to[i]]],[Y_3[bond_from[i]],Y_3[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-                plot!(plt_sxx, [X_33[bond_from[i]],X_33[bond_to[i]]],[Y_3[bond_from[i]],Y_3[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            end
-        end
+
         savefig(output_sxx_filename)
 
         return plt_sxx
@@ -532,8 +614,13 @@ using LaTeXStrings
         append!(Y,y9)
         append!(Y,y10)
         append!(Y,y11)
-    
 
+        #2列目のx座標(y座標はYと同じ)
+        X_2=X.+9
+        #2行1,2列目のy座標(x座標はXと同じ)
+        X_21 = X
+        X_22 = X.+ 9
+        Y_2 = Y.+ 12  
 
         #最近接bondの情報を用意する
         bond_from=[1,1,2,2,3,3,4,4,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14,16,16,17,17,18,18,19,20,20,21,21,22,22,23,23,24,24,25,26,26,27,27,28,28,29,29,30,30,31,31,32,32,33,33,34,34,36,36,37,37,39,40,40,41,41]
@@ -567,9 +654,65 @@ using LaTeXStrings
             end
         end
    
-        plt=Plots.plot()
-        plt_c=Plots.plot()
+        plt=Plots.plot(title=L"$\angle S_i^zS_j^z \rangle$",showaxis=false,margin=0mm)
+        title_c = L"$\langle \hat{S_i^z}\hat{S_j^z} \rangle_C$"
+         plt_szz_c=Plots.plot(title=title_c,titleposition=:center,showaxis=false,margin=0mm)
     
+            #<S_i^zS_j^z>のplot
+            for i=1:length(bond_from)
+                if szz_rel[i] >= 0
+                    COLOR=:red
+                    LW=szz_rel[i]*line_magnification
+                    plot!(plt, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt, [X2[bond_from[i]],X2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt, [X21[bond_from[i]],X21[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt, [X22[bond_from[i]],X22[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                else
+                    COLOR=:blue
+                    LW=abs(szz_rel[i])*line_magnification
+                    plot!(plt, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt, [X2[bond_from[i]],X2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt, [X21[bond_from[i]],X21[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt, [X22[bond_from[i]],X22[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                end
+            end
+            savefig(output_szz_filename)
+        
+            #<S_i^zS_j^z> - <S_i^z><S_j^z>のplot
+            for i=1:length(bond_from)
+                if szz_c_rel[i] >= 0
+                    COLOR=:red
+                    LW=abs(szz_c_rel[i])*line_magnification
+                    plot!(plt_c, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line,lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt_c, [X2[bond_from[i]],X2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt_c, [X21[bond_from[i]],X21[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt_c, [X22[bond_from[i]],X22[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                else
+                    COLOR=:blue
+                    LW=abs(szz_c_rel[i])*line_magnification
+                    plot!(plt_c, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt_c, [X2[bond_from[i]],X2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt_c, [X21[bond_from[i]],X21[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                    plot!(plt_c, [X22[bond_from[i]],X22[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                end
+            end
+
     
         #格子点のplot
         for l=1:length(sz)
@@ -577,10 +720,16 @@ using LaTeXStrings
                 m_color=:red
                 m_size=sz[l] * marker_magnification
                 plot!(plt,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt,[X2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)              
+                plot!(plt,[X21[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt,[X22[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
             else
                 m_color=:blue        
                 m_size=abs(sz[l]) * marker_magnification
                 plot!(plt,[X[l]],[Y[l]],label="",st=:scatter,  ms=m_size,msw=0, mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt,[X2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt,[X21[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt,[X22[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
             end
         end
     
@@ -589,43 +738,20 @@ using LaTeXStrings
                 m_color=:red
                 m_size = sz[l] * marker_magnification
                 plot!(plt_c,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_c,[X2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_c,[X21[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_c,[X22[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
             else
                 m_color=:blue        
                 m_size = abs(sz[l]) * marker_magnification
                 plot!(plt_c,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_c,[X2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_c,[X21[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_c,[X22[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
             end
         end
     
-        #<S_i^zS_j^z>のplot
-        for i=1:length(bond_from)
-            if szz_c_rel[i] >= 0
-                COLOR=:red
-                LW=szz_rel[i]*line_magnification
-                plot!(plt, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            else
-                COLOR=:blue
-                LW=abs(szz_rel[i])*line_magnification
-                plot!(plt, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            end
-        end
-        savefig(output_szz_filename)
     
-        #<S_i^zS_j^z> - <S_i^z><S_j^z>のplot
-        for i=1:length(bond_from)
-            if szz_c_rel[i] >= 0
-                COLOR=:red
-                LW=abs(szz_rel[i])*line_magnification
-                plot!(plt_c, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line,lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            else
-                COLOR=:blue
-                LW=abs(szz_c_rel[i])*line_magnification
-                plot!(plt_c, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-            end
-        end
     
         savefig(output_szz_c_filename)
     end
@@ -709,14 +835,21 @@ using LaTeXStrings
         append!(Y,y9)
         append!(Y,y10)
         append!(Y,y11)
+
+                #2列目のx座標(y座標はYと同じ)
+                X_2=X.+9
+                #2行1,2列目のy座標(x座標はXと同じ)
+                X_21 = X
+                X_22 = X.+ 9
+                Y_2 = Y.+ 12
     
-        println(length(X))
     
         #最近接bondの情報を用意する
         bond_from=[1,1,2,2,3,3,4,4,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14,16,16,17,17,18,18,19,20,20,21,21,22,22,23,23,24,24,25,26,26,27,27,28,28,29,29,30,30,31,31,32,32,33,33,34,34,36,36,37,37,39,40,40,41,41]
         bond_to=[3,4,3,7,4,7,5,8,8,10,11,12,13,14,15,10,16,11,16,12,17,13,17,14,18,15,18,19,20,21,22,23,24,20,21,26,22,26,23,27,24,27,25,28,28,30,31,32,33,34,35,30,36,31,36,32,37,33,37,34,38,35,38,39,40,41,42,40,41,43,42,43]
    
         sz=zeros(43)
+        sz=fill(0.2)
         open(input_sz_filename) do sz_file
             sz_index=1
             for line in eachline(sz_file)
@@ -738,35 +871,56 @@ using LaTeXStrings
             end
         end
 
-        plt=Plots.plot() 
+        title= L"$\langle \hat{S_i^x}\hat{S_j^x} \rangle$"
+        plt_sxx=Plots.plot(title=title,titleposition=:center,titlevspan=0.2,showaxis=false,margin=0mm)
     
+        #<S_i^xS_j^x>のplot
+        for i=1:length(bond_from)
+            if sxx_rel[i] >= 0
+                COLOR=:red
+                LW=sxx_rel[i]*line_magnification
+                plot!(plt_sxx, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx, [X2[bond_from[i]],X2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx, [X21[bond_from[i]],X21[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx, [X22[bond_from[i]],X22[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+            else
+                COLOR=:blue
+                LW=abs(sxx_rel[i])*line_magnification
+                plot!(plt_sxx, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx, [X2[bond_from[i]],X2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx, [X21[bond_from[i]],X21[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx, [X22[bond_from[i]],X22[bond_to[i]]],[Y2[bond_from[i]],Y2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+                    framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+            end
+        end
+
         #格子点のplot
         for l=1:length(sz)
             if sz[l] >= 0
                 m_color=:red
                 m_size=sz[l] * marker_magnification
-            plot!(plt,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx,[X2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)              
+                plot!(plt_sxx,[X21[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx,[X22[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
             else
                 m_color=:blue        
                 m_size=abs(sz[l]) * marker_magnification
-                plot!(plt,[X[l]],[Y[l]],label="",st=:scatter,  ms=m_size,msw=0, mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx,[X[l]],[Y[l]],label="",st=:scatter,  ms=m_size,msw=0, mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx,[X2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx,[X21[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                plot!(plt_sxx,[X22[l]],[Y2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
             end
         end
     
-        #<S_i^zS_j^z>のplot
-        for i=1:length(bond_from)
-        if sxx_rel[i] >= 0
-            COLOR=:red
-            LW=sxx_rel[i]*line_magnification
-            plot!(plt, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-            framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-        else
-            COLOR=:blue
-            LW=abs(sxx_rel[i])*line_magnification
-            plot!(plt, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-            framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-        end
-    end
+        
     savefig(output_sxx_filename)
 end
 

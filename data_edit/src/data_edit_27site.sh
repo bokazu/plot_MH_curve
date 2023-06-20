@@ -1,11 +1,17 @@
 #!/bin/bash
 
-szz_input_file_list=(../settings/sxx_*)
+szz_input_file_list=(../settings/szz_*)
+sxx_input_file_list=(../settings/sxx_*)
 sz_input_file_list=(../settings/sz_*)
 
 rm ../output/*
 
 for file in "${szz_input_file_list[@]}"; do
+    echo "input file : $file"
+    . extract_nn_27sites.sh "$file"
+done
+
+for file in "${sxx_input_file_list[@]}"; do
     echo "input file : $file"
     . extract_nn_27sites.sh "$file"
 done

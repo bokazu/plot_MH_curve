@@ -7,8 +7,8 @@ terminal_output_file="./terminal_output_${LATTICE}_${SITENUM}.txt"
 touch $terminal_output_file
 
 #相互作用の大小関係は J_green < J_red < J_blue = 1
-J_red=0.87
-J_green=0.06
+J_red=1.0
+J_green=1.0
 J_blue=1.0 #J_blueは1で固定
 J_red_inc_steps=0.0
 
