@@ -5,7 +5,7 @@ input_file=$(basename "${input_dir%.*}")
 output_file="../output/${input_file}_upstate.csv"
 
 
-for i in $(seq 1 13); do
+for i in $(seq 1 14); do
     awk -v line=$i 'NR==line { print }' "$input_dir" >> "$output_file"
 done
 

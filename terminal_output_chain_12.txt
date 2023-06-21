@@ -1,0 +1,2 @@
+argc = 20
+Deleting files in ./settings
