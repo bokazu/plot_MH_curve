@@ -1,0 +1,10 @@
+argc = 20
+input : scuccess
+J_red                 : 1
+J_green               : 1
+J_blue                : 1
+- File of eigen value : ./output/12/chainsite/output_param1/eigen_val.csv
+- File of time        : ./output/12/chainsite/output_param1/time/time_info_
+- Dir of <SxSx>       : ./output/12/chainsite/output_param1/sxx_rel
+- Dir of <Sz>         : ./output/12/chainsite/output_param1/sz_rel
+- Dir of <SzSz>       : ./output/12/chainsite/output_param1/szz_rel

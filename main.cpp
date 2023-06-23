@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
         end_up_spin = stoi(argv[18]);
         lanczos_type = argv[19];
 
+
         cout << "input : scuccess\n";
         cout << "J_red                 : " << J_red << endl;
         cout << "J_green               : " << J_green << endl;
@@ -55,6 +56,8 @@ int main(int argc, char *argv[])
         cout << "- Dir of <SxSx>       : " << dir_output_spin_sxx_rel << endl;
         cout << "- Dir of <Sz>         : " << dir_output_spin_sz_rel << endl;
         cout << "- Dir of <SzSz>       : " << dir_output_spin_szz_rel << endl;
+        cout << "start up spin         : " << start_up_spin << endl;
+        cout << "end up spin         : " << end_up_spin << endl;
     }
     else
     {

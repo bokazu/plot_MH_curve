@@ -1,9 +1,9 @@
-
-
 module kagome_spinrel
-using Plots
-using Measures
+using Plots;gr()
+# using Measures
 using LaTeXStrings
+# using WebIO
+using Interact
 
     function plot_27site_MH_curve_with_Highrigt(MHdata_file, num_of_M)
         h=zeros(15)
@@ -24,7 +24,7 @@ using LaTeXStrings
 
         plt = plot(h,M,line=:steppost,xlabel=L"h", ylabel=L"M/M_{sat}",xlims=(0,3.5),ylims=(0,1),title="Magnetization curve",titleposition=:center,legend=false, titlegap=2)
         if num_of_M < 27
-            plot!(plt, [h[num_of_M-13],h[num_of_M-12]],[M[num_of_M-13],M[num_of_M-13]],line=:steppost, lw=3,linecolor=:red, titlegap=2)
+            plot!(plt, [h[num_of_M-13],h[num_of_M-12]],[M[num_of_M-13],M[num_of_M-13]],line=:steppost, lw=3,linecolor=:red)
         elseif num_of_M == 27
             plot!(plt, [h[num_of_M-13],3.5],[M[num_of_M-13],M[num_of_M-13]],line=:steppost,lw=3, linecolor=:red, titlegap=2)
         end
@@ -135,7 +135,7 @@ using LaTeXStrings
         
         sz=ones(33)
 
-        plt=Plots.plot(title=L"$\mathrm{Kagome Lattice, 27site}$",showaxis=false,margin=0mm)
+        plt=Plots.plot(title=L"$\mathrm{Kagome\ Lattice,\ 27site}$",showaxis=false)
         
         #<S_i^zS_j^z>のplot
         for i=1:length(bond_from)
@@ -149,24 +149,26 @@ using LaTeXStrings
 
             LW=bond_strength[i]*5
             plot!(plt, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                framestyle=:none,aspect_ratio=:equal)
             plot!(plt, [X_2[bond_from[i]],X_2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                framestyle=:none,aspect_ratio=:equal)
             plot!(plt, [X_21[bond_from[i]],X_21[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                framestyle=:none,aspect_ratio=:equal)
             plot!(plt, [X_22[bond_from[i]],X_22[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+                framestyle=:none,aspect_ratio=:equal)
         end
-
+        plot!(plt, [0,0], [0,0],st=:line, lc=:red, label=L"J_{r} = ${J_red}",framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+        plot!(plt, [0,0], [0,0],st=:line, lc=:green, label=L"J_{b} = ${J_green}",framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+        plot!(plt, [0,0], [0,0],st=:line, lc=:blue, label=L"J_{b} = ${J_blue}",framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
     
      #格子点のplot
      for l=1:length(sz)
         m_color=:black
         m_size=sz[l] * 5
-        plot!(plt,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-        plot!(plt,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)              
-        plot!(plt,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
-        plot!(plt,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
+        plot!(plt,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
+        plot!(plt,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)              
+        plot!(plt,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
+        plot!(plt,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
     end
 
         return plt
@@ -270,7 +272,7 @@ using LaTeXStrings
     
         sz = ones(Int,43)
         COLOR=:black
-        plt=Plots.plot(title=L"$\mathrm{Kagome Lattice, 36site}$",showaxis=false,margin=0mm)
+        plt=Plots.plot(title=L"$\mathrm{Kagome Lattice, 36site}$",showaxis=false)
         #<S_i^zS_j^z>のplot
         for i=1:length(bond_from)
             if bond_strength[i] == J_red
@@ -407,12 +409,12 @@ using LaTeXStrings
             end
         end
 
-        #格子点のplot
-         plt_szz=Plots.plot(title=L"$\angle S_i^zS_j^z \rangle$",showaxis=false,margin=0mm)
+        # # #格子点のplot
+         plt_szz=Plots.plot(title=L"$\langle S_i^zS_j^z \rangle$",showaxis=false)
             title_c = L"$\langle \hat{S_i^z}\hat{S_j^z} \rangle_C$"
-         plt_szz_c=Plots.plot(title=title_c,titleposition=:center,showaxis=false,margin=0mm)
+         plt_szz_c=Plots.plot(title=title_c,titleposition=:center,showaxis=false)
 
-                 #<S_i^zS_j^z>のplot
+        #          #<S_i^zS_j^z>のplot
         for i=1:length(bond_from)
             if szz_rel[i] >= 0
                 COLOR=:violetred2
@@ -458,9 +460,11 @@ using LaTeXStrings
                 # framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
             end
         end
-        savefig(output_szz_filename)
 
-        #<S_i^zS_j^z> - <S_i^z><S_j^z>のplot
+
+        savefig(output_szz_c_filename)
+
+        # # #<S_i^zS_j^z> - <S_i^z><S_j^z>のplot
         for i=1:length(bond_from)
             if szz_c_rel[i] >= 0
                 COLOR=:violetred2
@@ -562,9 +566,6 @@ using LaTeXStrings
                 # plot!(plt_szz_c,[X_33[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,background_color=:transparent,aspect_ratio=:equal)
             end
         end
-
-
-
         savefig(output_szz_c_filename)
         return plt_szz, plt_szz_c
     end
@@ -665,7 +666,7 @@ using LaTeXStrings
 
         #格子点のplot
         title= L"$\langle \hat{S_i^x}\hat{S_j^x} \rangle$"
-        plt_sxx=Plots.plot(title=title,titleposition=:center,titlevspan=0.2,showaxis=false,margin=0mm)
+        plt_sxx=Plots.plot(title=title,titleposition=:center,titlevspan=0.2,showaxis=false)
 
                 #<S_ixzS_j^x>のplot
                 for i=1:length(bond_from)
@@ -863,9 +864,9 @@ using LaTeXStrings
             end
         end
    
-        plt=Plots.plot(title=L"$\angle S_i^zS_j^z \rangle$",showaxis=false,margin=0mm)
+        plt=Plots.plot(title=L"$\angle S_i^zS_j^z \rangle$",showaxis=false)
         title_c = L"$\langle \hat{S_i^z}\hat{S_j^z} \rangle_C$"
-         plt_c=Plots.plot(title=title_c,titleposition=:center,showaxis=false,margin=0mm)
+         plt_c=Plots.plot(title=title_c,titleposition=:center,showaxis=false)
     
             #<S_i^zS_j^z>のplot
             for i=1:length(bond_from)
@@ -1078,7 +1079,7 @@ using LaTeXStrings
         end
 
         title= L"$\langle \hat{S_i^x}\hat{S_j^x} \rangle$"
-        plt_sxx=Plots.plot(title=title,titleposition=:center,titlevspan=0.2,showaxis=false,margin=0mm)
+        plt_sxx=Plots.plot(title=title,titleposition=:center,titlevspan=0.2,showaxis=false)
     
         #<S_i^xS_j^x>のplot
         for i=1:length(bond_from)
@@ -1132,6 +1133,50 @@ using LaTeXStrings
     return plt_sxx
 end
 
+#この関数を利用するときはファイル名ではなく、ディレクトリ名を入力することに注意
+#ディレクトリ名には最後のスラッシュを含めないことに注意
+function summary_plot_27site_kagome(marker_magnification, line_magnification, input_dir_name, output_dir_name,  title_name)
+    plt_szz_c_arr=[]
+    plt_sxx_arr=[]
+    plt_MHcurve_arr=[]
+    plt_summary_arr=[]
+    title_arr=[]
+    
+    input_MHdata_filename = input_dir_name * "/MHdata.csv"
+    plt_lattice = kagome_spinrel.plot_27site_kagome_lattice(1, 0.0, 1.0)
+    mp = @manipulate for M_index=14:27
+        #ディレクトリ名をもとに各データの入力ファイル名を指定する
+        input_sz_filename = input_dir_name * "/sz_" * string(M_index) * "_upstate.csv"
+        input_szz_filename = input_dir_name * "/szz_" * string(M_index) * "_nn_list.csv"
+        input_sxx_filename = input_dir_name * "/sxx_" * string(M_index) * "_nn_list.csv"
+
+        #ディレクトリ名をもとに各データの出力ファイル名を指定する
+        output_szz_filename = output_dir_name * "/szz/szz_rel_" * string(M_index) * ".png"
+        output_szz_c_filename = output_dir_name * "/szz_c/szz_c_rel_" * string(M_index) * ".png"
+        output_sxx_filename = output_dir_name * "/sxx/sxx_rel_" * string(M_index) * ".png"
+        output_summary_filename = output_dir_name * "/summary/summary_$M_index.png"
+
+        #plotの実行
+        plt_szz, plt_szz_c = kagome_spinrel.plot_27site_szz_NNcorellation(input_szz_filename,input_sz_filename ,marker_magnification,line_magnification,output_szz_filename,output_szz_c_filename)
+        plt_sxx = kagome_spinrel.plot_27site_sxx_NNcorellation(input_sxx_filename,input_sz_filename ,marker_magnification,line_magnification,output_sxx_filename)
+        plt_MHcurve = kagome_spinrel.plot_27site_MH_curve_with_Highrigt(input_MHdata_filename, M_index)
+        
+        
+        M=[L"1/27",L"1/9",L"5/27",L"7/27",L"1/3 ",L"11/27",L"13/27",L"5/9 ",L"17/27",L"19/27",L"7/9 ",L"23/27 ",L"25/27",L"1  ",L"1  "]
+        title=plot(title=title_name * M[M_index - 13],grid=false, titleposition =:left,showaxis=false,titleframe=:box)
+        plot(title=title_name * M[M_index - 13],grid=false, titleposition =:left,showaxis=false,titleframe=:box)
+        l = @layout[a{0.01h}; b c; d e]
+        plt_sum = plot(title ,plt_MHcurve, plt_lattice,plt_szz_c,plt_sxx, layout=l,size=(1640,1640),margin=10, plot_titlevspan=0.01)
+        # savefig(output_summary_filename)
+        # append!(plt_szz_c_arr, plt_szz_c)
+        # append!(plt_sxx_arr, plt_sxx)
+        # append!(plt_MHcurve_arr, plt_MHcurve)
+        # append!(title_arr, title)
+        # append!(plt_summary_arr, plt_summary)
+    end
+    # return plt_szz_c_arr, plt_sxx_arr, plt_MHcurve_arr, title_arr,plt_lattice
+end
+
 export  plot_36site_kagome_lattice
 export plot_27site_MH_curve_with_Highrigt
 export plot_36site_MH_curve_with_Highrigt
@@ -1139,4 +1184,5 @@ export plot_27site_szz_NNcorellation
 export plot_27site_sxx_NNcorellation
 export plot_36site_szz_NNcorellation
 export plot_36site_sxx_NNcorellation
+export summary_plot_27site_kagome
 end

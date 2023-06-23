@@ -1,16 +1,16 @@
 #!/bin/bash
-ParamNum=1
-LATTICE="chain"
-SITENUM="12"
+ParamNum=9
+LATTICE="kagome"
+SITENUM="27"
 Lanczos_type="V" #lanczos法で固有値のみ求める => N /固有ベクトルも求める => V
 terminal_output_file="./terminal_output_${LATTICE}_${SITENUM}.txt"
 touch $terminal_output_file
 
 #相互作用の大小関係は J_green < J_red < J_blue = 1
-J_red=1.0
-J_green=1.0
+J_red=0.1
+J_green=0
 J_blue=1.0 #J_blueは1で固定
-J_red_inc_steps=0.0
+J_red_inc_steps=0.1
 
 #実行ファイル名の指定
 PLOT_MH_EXE_FILE="main"
@@ -40,14 +40,14 @@ rm -r ./sample_lists/${LATTICE}/${SITENUM}site/!(generate_jset|generate_jset.cpp
 for p in $(seq 1 ${ParamNum});do
     #=======================Jsetファイルを用意する==================================
     dir_jset_output="./sample_lists/${LATTICE}/${SITENUM}site/param${p}"
-    mkdir $dir_jset_output | tee $terminal_output_file
+    mkdir $dir_jset_output | tee -a $terminal_output_file
     #bondの値は環境変数にしたので、以下のスクリプト内で上記の変数を読み込む
     ./sample_lists/${LATTICE}/${SITENUM}site/generate_jset "$J_red" "$J_green" "$J_blue" "$dir_jset_output" | tee -a $terminal_output_file
     J_red=$(echo "$J_red + $J_red_inc_steps" | bc) #どのbondの値を変化させるかはここで決める
     #==================================================================================
 
     #===================Jsetファイルをsettingsにコピーする============================
-    cp "$dir_jset_output"/* ./settings | tee -a $terminal_output_file
+    cp "$dir_jset_output"/* ./settings/ | tee -a $terminal_output_file
     dir_jset0="./settings/jset0.txt"
     dir_jset1="./settings/jset1.txt"
     dir_jset2="./settings/jset2.txt"
