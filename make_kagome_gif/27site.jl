@@ -4,7 +4,6 @@ using Plots; gr()
 using Measures
 using LaTeXStrings
 # using WebIO
-using Interact
 
 
 
@@ -44,7 +43,15 @@ using Interact
 #格子点とbondの強調具合の指定
 marker_magnification = 20
 line_magnification = 40
+#入力ファイル、出力ファイルの存在するディレクトリの指定
 input_dir_name = "./settings/27site/distorted_1_0_1"
 output_dir_name = "./img/27site/distorted_1_0_1"
+#各ボンドのstrength
+J_r = 1.0
+J_g = 0.1
+J_b = 1.0
+
 title_name = "\n\n" *L"$ \mathrm{Uniform} \ \ ,\ \  M/M_{sat}=$"
-kagome_spinrel.summary_plot_27site_kagome(marker_magnification, line_magnification, input_dir_name, output_dir_name, title_name)
+title_name = "\n\n"*L"$\mathrm{Y}_3\mathrm{Cu}_9(\mathrm{OH})_{19}\mathrm{Cl}_8\ \ ,\ \ 27\mathrm{site}\ \ ,\ \  , J_r = " * string(J_r) * "J_g = " * string(J_g) * "J_b = " * string(J_b) * L"$\ \ M/M_{sat}=$"
+#最低磁化から飽和磁化までの磁化曲線及び、各磁化でのスピン相関の様子をplotする
+kagome_spinrel.summary_plot_27site_kagome(marker_magnification, line_magnification, input_dir_name, output_dir_name, J_r, J_g, J_b, title_name)

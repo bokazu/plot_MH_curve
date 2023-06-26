@@ -1,9 +1,7 @@
 module kagome_spinrel
-using Plots;gr()
-# using Measures
+using Plots
+using Measures
 using LaTeXStrings
-# using WebIO
-using Interact
 
     function plot_27site_MH_curve_with_Highrigt(MHdata_file, num_of_M)
         h=zeros(15)
@@ -1079,7 +1077,7 @@ using Interact
         end
 
         title= L"$\langle \hat{S_i^x}\hat{S_j^x} \rangle$"
-        plt_sxx=Plots.plot(title=title,titleposition=:center,titlevspan=0.2,showaxis=false)
+        plt_sxx=Plots.plot(title=title,titleposition=:center,showaxis=false)
     
         #<S_i^xS_j^x>のplot
         for i=1:length(bond_from)
@@ -1135,16 +1133,13 @@ end
 
 #この関数を利用するときはファイル名ではなく、ディレクトリ名を入力することに注意
 #ディレクトリ名には最後のスラッシュを含めないことに注意
-function summary_plot_27site_kagome(marker_magnification, line_magnification, input_dir_name, output_dir_name,  title_name)
-    plt_szz_c_arr=[]
-    plt_sxx_arr=[]
-    plt_MHcurve_arr=[]
-    plt_summary_arr=[]
-    title_arr=[]
+function summary_plot_27site_kagome(marker_magnification, line_magnification, input_dir_name, output_dir_name, J_r, J_g, J_b, title_name)
+    anim = Animation()
     
     input_MHdata_filename = input_dir_name * "/MHdata.csv"
-    plt_lattice = kagome_spinrel.plot_27site_kagome_lattice(1, 0.0, 1.0)
-    mp = @manipulate for M_index=14:27
+    #サイト間のbondの強さをplotする
+    plt_lattice = kagome_spinrel.plot_27site_kagome_lattice(J_r, J_g, J_b)
+    for M_index=14:27
         #ディレクトリ名をもとに各データの入力ファイル名を指定する
         input_sz_filename = input_dir_name * "/sz_" * string(M_index) * "_upstate.csv"
         input_szz_filename = input_dir_name * "/szz_" * string(M_index) * "_nn_list.csv"
@@ -1154,7 +1149,7 @@ function summary_plot_27site_kagome(marker_magnification, line_magnification, in
         output_szz_filename = output_dir_name * "/szz/szz_rel_" * string(M_index) * ".png"
         output_szz_c_filename = output_dir_name * "/szz_c/szz_c_rel_" * string(M_index) * ".png"
         output_sxx_filename = output_dir_name * "/sxx/sxx_rel_" * string(M_index) * ".png"
-        output_summary_filename = output_dir_name * "/summary/summary_$M_index.png"
+        output_summary_filename = output_dir_name * "/summary/summary_" * string(M_index) * ".png"
 
         #plotの実行
         plt_szz, plt_szz_c = kagome_spinrel.plot_27site_szz_NNcorellation(input_szz_filename,input_sz_filename ,marker_magnification,line_magnification,output_szz_filename,output_szz_c_filename)
@@ -1166,18 +1161,49 @@ function summary_plot_27site_kagome(marker_magnification, line_magnification, in
         title=plot(title=title_name * M[M_index - 13],grid=false, titleposition =:left,showaxis=false,titleframe=:box)
         plot(title=title_name * M[M_index - 13],grid=false, titleposition =:left,showaxis=false,titleframe=:box)
         l = @layout[a{0.01h}; b c; d e]
-        plt_sum = plot(title ,plt_MHcurve, plt_lattice,plt_szz_c,plt_sxx, layout=l,size=(1640,1640),margin=10, plot_titlevspan=0.01)
-        # savefig(output_summary_filename)
-        # append!(plt_szz_c_arr, plt_szz_c)
-        # append!(plt_sxx_arr, plt_sxx)
-        # append!(plt_MHcurve_arr, plt_MHcurve)
-        # append!(title_arr, title)
-        # append!(plt_summary_arr, plt_summary)
+        plt_sum = plot(title ,plt_MHcurve, plt_lattice,plt_szz_c,plt_sxx, layout=l,size=(1640,1640),margin=10mm, plot_titlevspan=0.01)
+        savefig(output_summary_filename)
+        frame(anim, plt_sum)        
     end
-    # return plt_szz_c_arr, plt_sxx_arr, plt_MHcurve_arr, title_arr,plt_lattice
+    output_animation_filename = output_dir_name * "/animation.gif"
+    gif(anim, output_animation_filename, fps = 1)
 end
 
-export  plot_36site_kagome_lattice
+    function summary_plot_36site_kagome(marker_magnification, line_magnification, input_dir_name, output_dir_name, J_r, J_g, J_b, title_name)
+        anim = Animation()
+    
+        input_MHdata_filename = input_dir_name * "/MHdata.csv"
+        plt_lattice = kagome_spinrel.plot_36site_kagome_lattice(J_r, J_g, J_b)
+        for M_index=18:36
+            #ディレクトリ名をもとに各データの入力ファイル名を指定する
+            input_sz_filename = input_dir_name * "/sz/sz_" * string(M_index) * "_upstate.csv"
+            input_szz_filename = input_dir_name * "/szz/szz_" * string(M_index) * "_nn_list.csv"
+            input_sxx_filename = input_dir_name * "/sxx/sxx_" * string(M_index) * "_nn_list.csv"
+
+            #ディレクトリ名をもとに各データの出力ファイル名を指定する
+            output_szz_filename = output_dir_name * "/szz/szz_rel_" * string(M_index) * ".png"
+            output_szz_c_filename = output_dir_name * "/szz_c/szz_c_rel_" * string(M_index) * ".png"
+            output_sxx_filename = output_dir_name * "/sxx/sxx_rel_" * string(M_index) * ".png"
+            output_summary_filename = output_dir_name * "/summary/summary_" *string(M_index) *".png"
+
+            #plotの実行
+            plt_szz, plt_szz_c = kagome_spinrel.plot_36site_szz_NNcorellation(input_szz_filename,input_sz_filename ,marker_magnification,line_magnification,output_szz_filename,output_szz_c_filename)
+            plt_sxx = kagome_spinrel.plot_36site_sxx_NNcorellation(input_sxx_filename,input_sz_filename ,marker_magnification,line_magnification,output_sxx_filename)
+            plt_MHcurve = kagome_spinrel.plot_36site_MH_curve_with_Highrigt(input_MHdata_filename, M_index)
+        
+        
+            M=[L"0",L"1/18",L"1/9",L"1/6",L"2/9",L"5/18",L"1/3 ",L"7/18",L"4/9",L"1/2",L"5/9",L"11/18",L"2/3",L"13/18",L"7/9 ",L"15/18",L"8/9 ",L"17/18",L"1  ",L"1"]
+            plt_title=plot(title=title_name * M[M_index - 17], grid=false, titleposition =:left,showaxis=false)
+            l = @layout[a{0.01h}; b c; d e]
+            plt_sum = plot(plt_title ,plt_MHcurve, plt_lattice,plt_szz_c,plt_sxx, layout=l,size=(1640,1640))
+            savefig(output_summary_filename)
+            frame(anim, plt_sum)        
+        end
+        output_animation_filename = output_dir_name * "/summary_animation.gif"
+        gif(anim, output_animation_filename, fps = 1)
+    end
+
+export plot_36site_kagome_lattice
 export plot_27site_MH_curve_with_Highrigt
 export plot_36site_MH_curve_with_Highrigt
 export plot_27site_szz_NNcorellation
@@ -1185,4 +1211,5 @@ export plot_27site_sxx_NNcorellation
 export plot_36site_szz_NNcorellation
 export plot_36site_sxx_NNcorellation
 export summary_plot_27site_kagome
+export summary_plot_36site_kagome
 end
