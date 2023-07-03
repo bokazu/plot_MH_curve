@@ -1,5 +1,5 @@
 #!/bin/bash
-ParamNum=9
+ParamNum=1
 LATTICE="kagome"
 SITENUM="27"
 Lanczos_type="V" #lanczos法で固有値のみ求める => N /固有ベクトルも求める => V
@@ -7,9 +7,9 @@ terminal_output_file="./terminal_output_${LATTICE}_${SITENUM}.txt"
 touch $terminal_output_file
 
 #相互作用の大小関係は J_green < J_red < J_blue = 1
-J_red=0.1
-J_green=0
-J_blue=1.0 #J_blueは1で固定
+J_red=1.0
+J_green=0.0
+J_blue=0.0 #J_blueは1で固定
 J_red_inc_steps=0.1
 
 #実行ファイル名の指定
@@ -33,7 +33,7 @@ var9="" #Y-kapellasiteの模型におけるbondの相互作用J_blue
 
 
 #前回の計算結果を削除
-rm -r ./output/${LATTICE}/${SITENUM}site/*  | tee -a $terminal_output_file
+rm -r ./output/${LATTICE}/${SITENUM}site/!(real|hexagon|trimer)  | tee -a $terminal_output_file
 #Jsetファイルを削除
 rm -r ./sample_lists/${LATTICE}/${SITENUM}site/!(generate_jset|generate_jset.cpp|generate_jset.sh)  | tee -a $terminal_output_file
 
