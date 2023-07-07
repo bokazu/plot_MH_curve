@@ -57,37 +57,52 @@ using LaTeXStrings
 
     function plot_27site_kagome_lattice(J_red, J_green, J_blue)
         #1行目の格子点のx,y座標
-        Y1 = 0
+        Y1 = 0.0
+        # x1 = [0.0, 3/2, 3, 9/2]
+        # y1 = [0.0,0.0,0.0,0.0]
+        # Y1 = 0
         x1=[0.0,3.0,6.0]
         y1=[0.0,0.0,0.0]
 
         #2行目の格子点のx,y座標
         Y2 = Y1-3*sqrt(3)/4
+        # x2 = [-3/4,9/4, 21/4]
+        # y2 = [Y2,Y2,Y2]
         x2=[-9/4,-3/4,3/4,9/4,15/4,21/4,27/4]
         y2=[Y2,    Y2,  Y2,Y2,  Y2,  Y2,  Y2]
 
         #3行目の格子点のx,y座標
         Y3 = Y2-3*sqrt(3)/4
+        # x3 = [-3/2, 0, 3/2, 3, 9/2, 6]
+        # y3 = [Y3,Y3,Y3,Y3,Y3,Y3]
         x3=[-3/2, 3/2,9/2]
         y3=[Y3,Y3,Y3]
 
         #4行目の格子点のx,y座標
         Y4 = Y3-3*sqrt(3)/4
+        # x4 = [-9/4, 3/4, 15/4, 27/4]
+        # y4 = [Y4   ,   Y4,   Y4,  Y4]
         x4=[-15/4, -9/4, -3/4, 3/4, 9/4, 15/4, 21/4]
         y4=[Y4   ,   Y4,   Y4,  Y4,  Y4,   Y4,   Y4]
 
         #5行目の格子点のx,y座標
         Y5 = Y4-3*sqrt(3)/4
+        # x5 = [-3/2, 0, 3/2, 3, 9/2, 6]
+        # y5 = [Y5  ,Y5,  Y5, Y5, Y5, Y5]
         x5=[-3.0,0.0,3.0]
         y5=[Y5, Y5, Y5]
 
         #6行目の格子点のx,y座標
         Y6 = Y5-3*sqrt(3)/4
+        # x6 = [-3/4,9/4, 21/4]
+        # y6 = [Y6, Y6, Y6]
         x6=[-21/4,-15/4, -9/4, -3/4, 3/4, 9/4, 15/4]
         y6=[Y6   ,   Y6,   Y6,  Y6,  Y6,   Y6,   Y6]
 
        #7行目の格子点のx,y座標
         Y7 = Y6-3*sqrt(3)/4
+        # x7 = [0.0, 3/2, 3, 9/2]
+        # y7 = [Y7,Y7,Y7,Y7]
         x7=[-9/2,-3/2, 3/2]
         y7=[ Y7,Y7,Y7]
 
@@ -110,10 +125,13 @@ using LaTeXStrings
 
         #2列目のx座標(y座標はYと同じ)
         X_2 = X.+9
+        
         #3列目のx座標(y座標はYと同じ)
         X_3 = X.+18
+        
         #4列目のx座標
         X_4 = X.+27
+        
         #2行目のx,y座標
         X_21 = X .-4.5
         X_22 = X_2 .-4.5
@@ -130,8 +148,9 @@ using LaTeXStrings
         bond_from=[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,11,11,12,12,13,13,14,14,15,15,16,16,17,17,18,18,19,19,21,21,22,22,23,23,24,24,25,25,26,26,27,27,28,28,29,29]
         bond_to=[5,6,7,8,9,10,5,11,6,11,7,12,8,12,9,13,10,13,15,16,17,18,19,20,15,21,16,21,17,22,18,22,19,23,20,23,25,26,27,28,29,30,25,31,26,31,27,32,28,32,29,33,30,33]
         bond_strength=[J_red, J_blue, J_blue, J_green, J_green, J_red,J_red,J_green,J_green,J_blue,J_green,J_blue,J_red,J_red,J_blue,J_red,
-        J_blue,J_green,J_blue,J_green,J_green,J_red,J_red,J_blue,J_green,J_blue,J_red,J_red,J_blue,J_red,J_blue,J_green,J_red,J_green,J_green,
-        J_blue,J_green,J_red,J_red,J_blue,J_blue,J_green,J_blue,J_red,J_blue,J_green,J_red,J_green,J_green,J_blue,J_green,J_blue,J_red,J_red]
+                    J_blue,J_green,J_blue,J_green,J_green,J_red,J_red,J_blue,J_green,J_blue,J_red,J_red,J_blue,J_red,J_blue,J_green,J_red,J_green,J_green,
+                    J_blue,J_green,J_red,J_red,J_blue,J_blue,J_green,J_blue,J_red,J_blue,J_green,J_red,J_green,J_green,J_blue,J_green,J_blue,J_red,J_red]
+
         
         sz=ones(33)
 
@@ -152,33 +171,20 @@ using LaTeXStrings
                 framestyle=:none,aspect_ratio=:equal)
             plot!(plt, [X_2[bond_from[i]],X_2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
                 framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_3[bond_from[i]],X_3[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_4[bond_from[i]],X_4[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,aspect_ratio=:equal)
             plot!(plt, [X_21[bond_from[i]],X_21[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
                 framestyle=:none,aspect_ratio=:equal)
             plot!(plt, [X_22[bond_from[i]],X_22[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
                 framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_23[bond_from[i]],X_23[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_24[bond_from[i]],X_24[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,aspect_ratio=:equal)
         end
-        # plot!(plt, [0,0], [0,0],st=:line, lc=:red, label=L"J_{r} = ${J_red}",framestyle=:none,aspect_ratio=:equal)
-        # plot!(plt, [0,0], [0,0],st=:line, lc=:green, label=L"J_{b} = ${J_green}",framestyle=:none,aspect_ratio=:equal)
-        # plot!(plt, [0,0], [0,0],st=:line, lc=:blue, label=L"J_{b} = ${J_blue}",framestyle=:none,aspect_ratio=:equal)
     
      #格子点のplot
      for l=1:length(sz)
         m_color=:black
         m_size=sz[l] * 5
         plot!(plt,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
-        plot!(plt,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
-        plot!(plt,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)              
+        plot!(plt,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)           
         plot!(plt,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
         plot!(plt,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
-        plot!(plt,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
     end
 
         return plt
@@ -188,59 +194,49 @@ using LaTeXStrings
 
     function plot_36site_kagome_lattice(J_red,J_green,J_blue)
         Y1=0.0
-        x1=[0.0]
-        y1=[Y1]
+        x1=[0.0, 3.0]
+        y1=[Y1,Y1]
     
         #2行目の格子点のx,y座標
         Y2=Y1-3*sqrt(3)/4
-        x2=[-9/4, -3/4, 3/4, 9/4]
-        y2=[Y2  ,   Y2,  Y2,  Y2]
+        x2=[-9/4, -3/4, 3/4, 9/4, 15/4, 21/4]
+        y2=[Y2  ,   Y2,  Y2,  Y2,   Y2,   Y2]
     
         #3行目の格子点のx,y座標
         Y3=Y2-3*sqrt(3)/4
-        x3=[-9/2, -3/2, 3/2]
-        y3=[Y3  ,   Y3,  Y3]
+        x3=[-3/2, 3/2, 9/2]
+        y3=[Y3  ,   Y3, Y3]
     
         #4行目の格子点のx,y座標
         Y4=Y3-3*sqrt(3)/4
-        x4=[-27/4, -27/4+(3/2), -27/4+3, -27/4+(3/2)*3, -27/4+6, -27/4 + (3/2)*5, -27/4 + 9]
-        y4=[Y4  ,           Y4,      Y4,            Y4,      Y4,              Y4, Y4]
+        x4=[-15/4, -9/4, -3/4, 3/4, 9/4, 15/4, 21/4, 27/4]
+        y4=[Y4  ,    Y4,   Y4,  Y4,  Y4,   Y4,  Y4,    Y4]
     
         #5行目の格子点のx,y座標
         Y5=Y4-3*sqrt(3)/4
-        x5=[-6,-3,0]
-        y5=[Y5,Y5,Y5]
+        x5=[-3,0, 3, 6]
+        y5=[Y5,Y5,Y5,Y5]
     
         #6行目の格子点のx,y座標
         Y6=Y5-3*sqrt(3)/4
-        x6=[-27/4, -27/4+(3/2), -27/4+3, -27/4+(3/2)*3, -27/4+6, -27/4 + (3/2)*5, -27/4 + 9]
-        y6=[Y6  ,           Y6,      Y6,            Y6,      Y6,              Y6,        Y6]
+        x6=[-15/4, -9/4, -3/4, 3/4, 9/4, 15/4, 21/4, 27/4]
+        y6=[Y6  ,    Y6,   Y6,  Y6,  Y6,   Y6,   Y6,   Y6]
     
         #7行目の格子点のx,y座標
         Y7=Y6-3*sqrt(3)/4
-        x7=[-9/2, -3/2, 3/2]
+        x7=[-3/2, 3/2, 9/2]
         y7=[Y7,Y7,Y7]
     
         #8行目の格子点のx,y座標
         Y8=Y7-3*sqrt(3)/4
-        x8=[-27/4, -27/4+(3/2), -27/4+3, -27/4+(3/2)*3, -27/4+6, -27/4 + (3/2)*5, -27/4 + 9]
-        y8=[Y8 ,           Y8,      Y8,            Y8,      Y8,              Y8, Y8]
+        x8=[-9/4, -3/4, 3/4, 9/4, 15/4, 21/4]
+        y8=[Y8 ,    Y8,  Y8,  Y8,   Y8,   Y8]
     
         #9行目の格子点のx,y座標
         Y9=Y8-3*sqrt(3)/4
-        x9=[-6,-3,0]
-        y9=[Y9,Y9,Y9]
-    
-        #10行目の格子点のx,y座標
-        Y10=Y9-3*sqrt(3)/4
-        x10=[-27/4, -27/4+(3/2), -27/4+3, -27/4+(3/2)*3]
-        y10=[Y10 ,           Y10,      Y10,            Y10]
-    
-        #11行目の格子点のx,y座標
-        Y11=Y10-3*sqrt(3)/4
-        x11=[-9/2]
-        y11=[Y11]
-    
+        x9=[0.0, 3.0]
+        y9=[Y9,Y9]
+
         X=Float64[]
         Y=Float64[]
         X=copy(x1)
@@ -252,8 +248,6 @@ using LaTeXStrings
         append!(X,x7)
         append!(X,x8)
         append!(X,x9)
-        append!(X,x10)
-        append!(X,x11)
         Y=copy(y1)
         append!(Y,y2)
         append!(Y,y3)
@@ -263,32 +257,52 @@ using LaTeXStrings
         append!(Y,y7)
         append!(Y,y8)
         append!(Y,y9)
-        append!(Y,y10)
-        append!(Y,y11)
 
         #2列目のx座標(y座標はYと同じ)
         X_2=X.+9
+        Y_2=Y.+3*sqrt(3)
         #3列目のx座標
-        X_3 = X.+18
-        X_4 = X.+27
+        X_3 = X.+9
+        Y_3 = Y.-3*sqrt(3)
+        X_4 = X
+        Y_4 = Y.-6*sqrt(3)
         #2行1,2列目のy座標(x座標はXと同じ)
         X_21 = X
         X_22 = X.+ 9
         X_23 = X.+18
         X_24 = X.+27
-        Y_2 = Y.- 6*sqrt(3)  
+ 
+        bond_from=[1,1 ,2,2,3,3,4,4 ,5  ,5  ,6 ,6 ,7 ,7,8 ,9  ,9   ,10 ,10 ,11,11  ,12    ,12
+        ,13        ,13        ,14        ,14        ,15        ,15        ,16        ,16
+        ,17        ,17        ,18        ,18        ,19        ,20        ,20        ,21
+        ,21        ,22        ,22        ,23        ,23        ,24        ,25        ,25
+        ,26        ,26        ,27        ,27        ,28        ,28        ,29        ,29
+        ,30        ,30        ,32        ,32        ,33        ,33        ,34        ,34
+        ,35        ,36        ,36        ,37        ,37        ,38        ,38        ,39        ,39        ]
+        bond_to=[4        ,5        ,6        ,7        ,4        ,9        ,5        ,9
+        ,6        ,10        ,7        ,10        ,8        ,11        ,11        ,13
+        ,14        ,15        ,16        ,17        ,18        ,13        ,20        ,14
+        ,20        ,15        ,21        ,16        ,21       , 17        ,22        ,18
+        ,22        ,19        ,23        ,23        ,24        ,25        ,26        ,27
+        ,28        ,29        ,30        ,31        ,25        ,26        ,32        ,27
+        ,32        ,28        ,33        ,29        ,33        ,30        ,34        ,31
+        ,34        ,35        ,36        ,37        ,38        ,39        ,40        ,36
+        ,37        ,41        ,38        ,41        ,39        ,42       ,40        ,42        ]
 
-        bond_from=[1,1,2,2,3,3,4,4,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14,16,16,17,17,18,18,19,20,20,21,21,22,22,23,23,24,24,25,26,26,27,27,28,28,29,29,30,30,31,31,32,32,33,33,34,34,36,36,37,37,39,40,40,41,41]
-        bond_to=[3,4,3,7,4,7,5,8,8,10,11,12,13,14,15,10,16,11,16,12,17,13,17,14,18,15,18,19,20,21,22,23,24,20,21,26,22,26,23,27,24,27,25,28,28,30,31,32,33,34,35,30,36,31,36,32,37,33,37,34,38,35,38,39,40,41,42,40,41,43,42,43]
-
-        bond_strength=[J_blue, J_green,J_green,J_blue,J_red,J_red, J_blue, J_red,J_green,J_blue,J_green,J_green,J_red,J_red,J_blue,J_green,J_blue,J_red,J_red,J_blue,J_red,J_blue,J_green,J_red,J_green,J_green,
-            J_blue,J_green,J_red,J_red,J_blue,J_blue,J_green,J_blue,J_red,J_green,J_green,J_blue,J_green,J_blue,J_red,J_red,J_blue,J_red,J_green,J_blue,J_green,J_green,J_red,J_red,J_blue,J_green,
-            J_blue,J_red,J_red,J_blue,J_red,J_blue,J_green,J_red,J_green,J_green,J_blue,J_green,J_red,J_red,J_blue,J_blue,J_red,J_green,J_green,J_blue]
+        bond_strength=[J_green        ,J_red        ,J_red        ,J_blue        ,J_blue        ,J_red        ,J_blue        ,J_green
+        ,J_red        ,J_green        ,J_green        ,J_blue        ,J_green        ,J_blue        ,J_red        ,J_red
+        ,J_blue        ,J_blue        ,J_green        ,J_green        ,J_red        ,J_red        ,J_green        ,J_green
+        ,J_blue        ,J_green        ,J_blue        ,J_red        ,J_red        ,J_blue        ,J_red        ,J_blue
+        ,J_green        ,J_red        ,J_green        ,J_blue        ,J_blue        ,J_green        ,J_green        ,J_red
+        ,J_red        ,J_blue        ,J_blue        ,J_green        ,J_red        ,J_blue        ,J_red        ,J_blue
+        ,J_green        ,J_red        ,J_green        ,J_green        ,J_blue        ,J_green        ,J_blue        ,J_red
+        ,J_red        ,J_red        ,J_blue        ,J_blue        ,J_green        ,J_green        ,J_red        ,J_green
+        ,J_green        ,J_blue        ,J_red        ,J_red        ,J_blue        ,J_red        ,J_blue        ,J_green        ]
     
-        sz = ones(Int,43)
+        sz = ones(Int,42)
         COLOR=:black
         plt=Plots.plot(title=L"$\mathrm{Kagome Lattice, 36site}$",showaxis=false)
-        #<S_i^zS_j^z>のplot
+        #bondのplot
         for i=1:length(bond_from)
             if bond_strength[i] == J_red
                 COLOR=:red
@@ -301,20 +315,20 @@ using LaTeXStrings
             LW=bond_strength[i]*5
             plot!(plt, [X[bond_from[i]],X[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
                 framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_2[bond_from[i]],X_2[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+            plot!(plt, [X_2[bond_from[i]],X_2[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
                 framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_3[bond_from[i]],X_3[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+            plot!(plt, [X_3[bond_from[i]],X_3[bond_to[i]]],[Y_3[bond_from[i]],Y_3[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
                 framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_4[bond_from[i]],X_4[bond_to[i]]],[Y[bond_from[i]],Y[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+            plot!(plt, [X_4[bond_from[i]],X_4[bond_to[i]]],[Y_4[bond_from[i]],Y_4[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
                 framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_21[bond_from[i]],X_21[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_22[bond_from[i]],X_22[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_23[bond_from[i]],X_23[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,aspect_ratio=:equal)
-            plot!(plt, [X_24[bond_from[i]],X_24[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
-                framestyle=:none,aspect_ratio=:equal)
+            # plot!(plt, [X_21[bond_from[i]],X_21[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+            #     framestyle=:none,aspect_ratio=:equal)
+            # plot!(plt, [X_22[bond_from[i]],X_22[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+            #     framestyle=:none,aspect_ratio=:equal)
+            # plot!(plt, [X_23[bond_from[i]],X_23[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+            #     framestyle=:none,aspect_ratio=:equal)
+            # plot!(plt, [X_24[bond_from[i]],X_24[bond_to[i]]],[Y_2[bond_from[i]],Y_2[bond_to[i]]],st=:line, lw=LW,lc=COLOR,label="",
+            #     framestyle=:none,aspect_ratio=:equal)
         end
 
     
@@ -323,13 +337,13 @@ using LaTeXStrings
         m_color=:black
         m_size=sz[l] * 5
         plot!(plt,[X[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
-        plot!(plt,[X_2[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
-        plot!(plt,[X_3[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal) 
-        plot!(plt,[X_4[l]],[Y[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)             
-        plot!(plt,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
-        plot!(plt,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
-        plot!(plt,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
-        plot!(plt,[X_24[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
+        plot!(plt,[X_2[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
+        plot!(plt,[X_3[l]],[Y_3[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal) 
+        plot!(plt,[X_4[l]],[Y_4[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)             
+        # plot!(plt,[X_21[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
+        # plot!(plt,[X_22[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
+        # plot!(plt,[X_23[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
+        # plot!(plt,[X_24[l]],[Y_2[l]],label="",st=:scatter, ms=m_size, msw=0,mc=m_color, framestyle=:none,aspect_ratio=:equal)
     end
 
         return plt

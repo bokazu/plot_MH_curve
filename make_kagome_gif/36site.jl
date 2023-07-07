@@ -1,6 +1,6 @@
 include("./src/kagome_spinrel.jl")
 using .kagome_spinrel
-using Plots
+using Plots             
 using Measures
 using LaTeXStrings
 
@@ -28,8 +28,8 @@ using LaTeXStrings
 marker_magnification = 20
 line_magnification = 20
 #入力ファイル、出力ファイルの存在するディレクトリの指定
-input_dir_name = "./settings/27site/real"
-output_dir_name = "./img/27site/real"
+input_dir_name = "./settings/36site/real"
+output_dir_name = "./img/36site/real"
 #各ボンドのstrength
 J_r = 0.87
 J_g = 0.06

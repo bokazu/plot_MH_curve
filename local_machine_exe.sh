@@ -1,15 +1,15 @@
 #!/bin/bash
 ParamNum=1
 LATTICE="kagome"
-SITENUM="27"
-Lanczos_type="V" #lanczos法で固有値のみ求める => N /固有ベクトルも求める => V
+SITENUM="36"
+Lanczos_type="N" #lanczos法で固有値のみ求める => N /固有ベクトルも求める => V
 terminal_output_file="./terminal_output_${LATTICE}_${SITENUM}.txt"
 touch $terminal_output_file
 
 #相互作用の大小関係は J_green < J_red < J_blue = 1
 J_red=1.0
-J_green=0.0
-J_blue=0.0 #J_blueは1で固定
+J_green=1.0
+J_blue=1.0 #J_blueは1で固定
 J_red_inc_steps=0.1
 
 #実行ファイル名の指定
@@ -33,7 +33,7 @@ var9="" #Y-kapellasiteの模型におけるbondの相互作用J_blue
 
 
 #前回の計算結果を削除
-rm -r ./output/${LATTICE}/${SITENUM}site/!(real|hexagon|trimer)  | tee -a $terminal_output_file
+rm -r ./output/${LATTICE}/${SITENUM}site/!(real|hexagon|trimer|jred)  | tee -a $terminal_output_file
 #Jsetファイルを削除
 rm -r ./sample_lists/${LATTICE}/${SITENUM}site/!(generate_jset|generate_jset.cpp|generate_jset.sh)  | tee -a $terminal_output_file
 
@@ -84,7 +84,7 @@ for p in $(seq 1 ${ParamNum});do
     export KMP_AFFINITY=scatter
     export OMP_SCHEDULE="dynamic,3"
 
-    start_up_spin=$var5
+    start_up_spin=$((var5 + 10))
     end_up_spin=$var6
     ./build/${PLOT_MH_EXE_FILE} "$var2" "$var3" "$var4" "$var5" "$var6" "$var7" "$var8" "$var9" "$dir_jset0" "$dir_jset1" "$dir_jset2" "$file_output_eval" "$file_output_time" "$dir_output_sxx_rel" "$dir_output_sz_rel" "$dir_output_szz_rel" "$start_up_spin" "$end_up_spin" "$Lanczos_type" | tee -a $terminal_output_file
     
