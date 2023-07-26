@@ -1,7 +1,7 @@
 #!/bin/bash
 ParamNum=1
 LATTICE="kagome"
-SITENUM="36"
+SITENUM="27"
 Lanczos_type="N" #lanczos法で固有値のみ求める => N /固有ベクトルも求める => V
 terminal_output_file="./terminal_output_${LATTICE}_${SITENUM}.txt"
 touch $terminal_output_file
@@ -10,7 +10,7 @@ touch $terminal_output_file
 J_red=1.0
 J_green=1.0
 J_blue=1.0 #J_blueは1で固定
-J_red_inc_steps=0.1
+J_red_inc_steps=0.2
 
 #実行ファイル名の指定
 PLOT_MH_EXE_FILE="main"
@@ -81,11 +81,12 @@ for p in $(seq 1 ${ParamNum});do
         echo $var
     done
 
-    export KMP_AFFINITY=scatter
-    export OMP_SCHEDULE="dynamic,3"
+    export OMP_NUM_THREADS=1 #変更箇所2
+    # export KMP_AFFINITY=scatter
+    # export OMP_SCHEDULE="dynamic,3"
 
-    start_up_spin=$((var5 + 10))
-    end_up_spin=$var6
+    start_up_spin=$var5
+    end_up_spin=$var5 #変更箇所1
     ./build/${PLOT_MH_EXE_FILE} "$var2" "$var3" "$var4" "$var5" "$var6" "$var7" "$var8" "$var9" "$dir_jset0" "$dir_jset1" "$dir_jset2" "$file_output_eval" "$file_output_time" "$dir_output_sxx_rel" "$dir_output_sz_rel" "$dir_output_szz_rel" "$start_up_spin" "$end_up_spin" "$Lanczos_type" | tee -a $terminal_output_file
     
     #===================jsetファイルをsettings_dirから削除する==============

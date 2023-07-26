@@ -1,0 +1,351 @@
+[ 77%] Built target Subsystem_Sz
+[100%] Built target main
+argc = 20
+input : scuccess
+J_red                 : 1
+J_green               : 1
+J_blue                : 1
+- File of eigen value : ./output/chain/16site/output_param1/eigen_val.csv
+- File of time        : ./output/chain/16site/output_param1/time/time_info_
+- Dir of <SxSx>       : ./output/chain/16site/output_param1/sxx_rel
+- Dir of <Sz>         : ./output/chain/16site/output_param1/sz_rel
+- Dir of <SzSz>       : ./output/chain/16site/output_param1/szz_rel
+start up spin         : 8
+end up spin         : 16
+up = 8
+eps = 0
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 4
+- site num of A    : 8
+- site num of B    : 8
+- magnetization    : 0
+- No of subspace   : 9
+- Total lanczos step : 50
+- lanczos method   : success
+- Eigen value of Groundstate : -7.142296360616777
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 0.1992101669311523[sec]
+   |_ Hamiltonian     : 0.0007770061492919922[sec]
+   |_ Lanczos         : 0.1984331607818604[sec]
+       |_ eigen value : 0.1316831111907959[sec]
+       |_ eigen vec   : 0.06675004959106445[sec]
+
+- <SxSx> Total        : 0.0036631[sec]
+   |_ (i, j) in A     : 0.00077295[sec]
+   |_ (i, j) in B     : 0.00073791[sec]
+   |_i in A, j in B   : 0.0020511[sec]
+
+- <SzSz> Total        : 0.0012121[sec]
+   |_ (i, j) in A     : 0.00040698[sec]
+   |_ (i, j) in B     : 0.00030994[sec]
+   |_i in A, j in B   : 0.00039697[sec]
+====================================================================
+
+Subsystem is destructed
+up = 9
+eps = 8.88178e-16
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 4
+- site num of A    : 8
+- site num of B    : 8
+- magnetization    : 1
+- No of subspace   : 8
+- Total lanczos step : 50
+- lanczos method   : success
+- Eigen value of Groundstate : -6.872106678366454
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 0.1370301246643066[sec]
+   |_ Hamiltonian     : 0.0004510879516601562[sec]
+   |_ Lanczos         : 0.1365790367126465[sec]
+       |_ eigen value : 0.07793998718261719[sec]
+       |_ eigen vec   : 0.0586390495300293[sec]
+
+- <SxSx> Total        : 0.003134[sec]
+   |_ (i, j) in A     : 0.00067496[sec]
+   |_ (i, j) in B     : 0.00067306[sec]
+   |_i in A, j in B   : 0.0016792[sec]
+
+- <SzSz> Total        : 0.0010991[sec]
+   |_ (i, j) in A     : 0.00036883[sec]
+   |_ (i, j) in B     : 0.00027895[sec]
+   |_i in A, j in B   : 0.00035[sec]
+====================================================================
+
+Subsystem is destructed
+up = 10
+eps = 8.88178e-16
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 4
+- site num of A    : 8
+- site num of B    : 8
+- magnetization    : 2
+- No of subspace   : 7
+- Total lanczos step : 52
+- lanczos method   : success
+- Eigen value of Groundstate : -6.122315267678048
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 0.1549577713012695[sec]
+   |_ Hamiltonian     : 0.0004460811614990234[sec]
+   |_ Lanczos         : 0.1545116901397705[sec]
+       |_ eigen value : 0.09100079536437988[sec]
+       |_ eigen vec   : 0.06351089477539062[sec]
+
+- <SxSx> Total        : 0.002564[sec]
+   |_ (i, j) in A     : 0.00056005[sec]
+   |_ (i, j) in B     : 0.00053883[sec]
+   |_i in A, j in B   : 0.0013659[sec]
+
+- <SzSz> Total        : 0.0010889[sec]
+   |_ (i, j) in A     : 0.0003109[sec]
+   |_ (i, j) in B     : 0.0003891[sec]
+   |_i in A, j in B   : 0.00029302[sec]
+====================================================================
+
+Subsystem is destructed
+up = 11
+eps = 8.88178e-16
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 4
+- site num of A    : 8
+- site num of B    : 8
+- magnetization    : 3
+- No of subspace   : 6
+- Total lanczos step : 45
+- lanczos method   : success
+- Eigen value of Groundstate : -4.974583095614666
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 0.1156589984893799[sec]
+   |_ Hamiltonian     : 0.0003740787506103516[sec]
+   |_ Lanczos         : 0.1152849197387695[sec]
+       |_ eigen value : 0.0720679759979248[sec]
+       |_ eigen vec   : 0.04321694374084473[sec]
+
+- <SxSx> Total        : 0.0019569[sec]
+   |_ (i, j) in A     : 0.00057888[sec]
+   |_ (i, j) in B     : 0.000386[sec]
+   |_i in A, j in B   : 0.0008719[sec]
+
+- <SzSz> Total        : 0.00078988[sec]
+   |_ (i, j) in A     : 0.00027299[sec]
+   |_ (i, j) in B     : 0.00019097[sec]
+   |_i in A, j in B   : 0.00022292[sec]
+====================================================================
+
+Subsystem is destructed
+up = 12
+eps = 4.44089e-16
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 4
+- site num of A    : 8
+- site num of B    : 8
+- magnetization    : 4
+- No of subspace   : 5
+- Total lanczos step : 52
+- lanczos method   : success
+- Eigen value of Groundstate : -3.512134686216709
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 0.1003031730651855[sec]
+   |_ Hamiltonian     : 0.0002901554107666016[sec]
+   |_ Lanczos         : 0.1000130176544189[sec]
+       |_ eigen value : 0.0566709041595459[sec]
+       |_ eigen vec   : 0.04334211349487305[sec]
+
+- <SxSx> Total        : 0.0011621[sec]
+   |_ (i, j) in A     : 0.00030303[sec]
+   |_ (i, j) in B     : 0.00025105[sec]
+   |_i in A, j in B   : 0.00050902[sec]
+
+- <SzSz> Total        : 0.00063896[sec]
+   |_ (i, j) in A     : 0.00021005[sec]
+   |_ (i, j) in B     : 0.0001471[sec]
+   |_i in A, j in B   : 0.00017786[sec]
+====================================================================
+
+Subsystem is destructed
+up = 13
+eps = 4.44089e-16
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 4
+- site num of A    : 8
+- site num of B    : 8
+- magnetization    : 5
+- No of subspace   : 4
+- Total lanczos step : 41
+- lanczos method   : success
+- Eigen value of Groundstate : -1.815001623725666
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 0.06314897537231445[sec]
+   |_ Hamiltonian     : 0.0002019405364990234[sec]
+   |_ Lanczos         : 0.06294703483581543[sec]
+       |_ eigen value : 0.03481197357177734[sec]
+       |_ eigen vec   : 0.02813506126403809[sec]
+
+- <SxSx> Total        : 0.00066805[sec]
+   |_ (i, j) in A     : 0.00020003[sec]
+   |_ (i, j) in B     : 0.00014997[sec]
+   |_i in A, j in B   : 0.00022101[sec]
+
+- <SzSz> Total        : 0.0004859[sec]
+   |_ (i, j) in A     : 0.00015402[sec]
+   |_ (i, j) in B     : 0.00011206[sec]
+   |_i in A, j in B   : 0.00012088[sec]
+====================================================================
+
+Subsystem is destructed
+up = 14
+eps = 5.27356e-16
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 4
+- site num of A    : 8
+- site num of B    : 8
+- magnetization    : 6
+- No of subspace   : 3
+- Total lanczos step : 36
+- lanczos method   : success
+- Eigen value of Groundstate : 0.04370479853238855
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 0.04113888740539551[sec]
+   |_ Hamiltonian     : 0.0001189708709716797[sec]
+   |_ Lanczos         : 0.04101991653442383[sec]
+       |_ eigen value : 0.02364087104797363[sec]
+       |_ eigen vec   : 0.0173790454864502[sec]
+
+- <SxSx> Total        : 0.00050616[sec]
+   |_ (i, j) in A     : 9.203e-05[sec]
+   |_ (i, j) in B     : 0.00021601[sec]
+   |_i in A, j in B   : 0.000103[sec]
+
+- <SzSz> Total        : 0.00050902[sec]
+   |_ (i, j) in A     : 0.00011706[sec]
+   |_ (i, j) in B     : 0.00011992[sec]
+   |_i in A, j in B   : 0.00014496[sec]
+====================================================================
+
+Subsystem is destructed
+up = 15
+eps = 6.66134e-16
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 4
+- site num of A    : 8
+- site num of B    : 8
+- magnetization    : 7
+- No of subspace   : 2
+- Total lanczos step : 8
+- lanczos method   : success
+- Eigen value of Groundstate : 2
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 0.00835108757019043[sec]
+   |_ Hamiltonian     : 8.20159912109375e-05[sec]
+   |_ Lanczos         : 0.008269071578979492[sec]
+       |_ eigen value : 0.003671884536743164[sec]
+       |_ eigen vec   : 0.004597187042236328[sec]
+
+- <SxSx> Total        : 0.00027013[sec]
+   |_ (i, j) in A     : 8.4877e-05[sec]
+   |_ (i, j) in B     : 5.3883e-05[sec]
+   |_i in A, j in B   : 5.2929e-05[sec]
+
+- <SzSz> Total        : 0.00028896[sec]
+   |_ (i, j) in A     : 8.4162e-05[sec]
+   |_ (i, j) in B     : 5.579e-05[sec]
+   |_i in A, j in B   : 5.1975e-05[sec]
+====================================================================
+
+Subsystem is destructed
+up = 16
+
+
+====================================================================
+[Info of Subsystem_Sz]
+--------------------------------------------------------------------
+- system_num       : 4
+- site num of A    : 8
+- site num of B    : 8
+- magnetization    : 8
+- No of subspace   : 1
+- Total lanczos step : 0
+- lanczos method   : success
+- Eigen value of Groundstate : 4
+--------------------------------------------------------------------
+[Info of Run Time]
+--------------------------------------------------------------------
+- Total               : 3.814697265625e-05[sec]
+   |_ Hamiltonian     : 3.814697265625e-05[sec]
+   |_ Lanczos         : 0[sec]
+       |_ eigen value : 0[sec]
+       |_ eigen vec   : 0[sec]
+
+- <SxSx> Total        : 0.00022602[sec]
+   |_ (i, j) in A     : 6.5088e-05[sec]
+   |_ (i, j) in B     : 2.7895e-05[sec]
+   |_i in A, j in B   : 2.6941e-05[sec]
+
+- <SzSz> Total        : 0.00021601[sec]
+   |_ (i, j) in A     : 6.5804e-05[sec]
+   |_ (i, j) in B     : 2.5034e-05[sec]
+   |_i in A, j in B   : 2.3842e-05[sec]
+====================================================================
+
+Subsystem is destructed
+==========================================================================================
+Magnetization       Eigen value
+------------------------------------------------------------------------------------------
+                 0 -7.14229636061678
+             0.125 -6.87210667836645
+              0.25 -6.12231526767805
+             0.375 -4.97458309561467
+               0.5 -3.51213468621671
+             0.625 -1.81500162372567
+              0.750.0437047985323886
+             0.875                 2
+                 1                 4
+===========================================================================================
+Deleting files in ./settings

@@ -4142,10 +4142,10 @@ void Subsystem_Sz::MP_schedule_sub_lanczos_timetest(const int tri_mat_dim, std::
         if (ls > 0)
         {
           eps = abs(eval_even[0] - eval_odd[0]);
-          if (info_ls == 'y')
-          {
-            cout << "eps = " << std::setprecision(17) << eps << endl;
-          }
+          // if (info_ls == 'y')
+          // {
+          //   cout << "eps = " << std::setprecision(17) << eps << endl;
+          // }
 
           if (eps > err)
             err_checker = true;
@@ -5557,7 +5557,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
   start_sxx_A = omp_get_wtime();
   for (No = 0; No < pair_num; No++)
   {
-#pragma omp parallel for private(n, m,state_num_of_A, site_i, site_j,is_up_spin_i, is_up_spin_j, evec_val, n_trans, bm_ctr) schedule(runtime) reduction(+ : rel_ij[0 : dim2])
+#pragma omp parallel for private(n, m, state_num_of_A, site_i, site_j, is_up_spin_i, is_up_spin_j, evec_val, n_trans, bm_ctr) schedule(runtime) reduction(+ : rel_ij[0 : dim2])
     for (m = 0; m < tot_Sz[No].bm_B_size; m++)
     {
       for (n = 0; n < tot_Sz[No].bm_A_size; n++)
@@ -5612,7 +5612,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
   for (No = 0; No < pair_num; No++)
   {
 // 状態についてのloop
-#pragma omp parallel for private(n, m,state_num_of_B, site_i, site_j, itr, is_up_spin_i, is_up_spin_j, evec_val, n_trans, bm_ctr) schedule(runtime) reduction(+ : rel_ij[0 : dim2])
+#pragma omp parallel for private(n, m, state_num_of_B, site_i, site_j, itr, is_up_spin_i, is_up_spin_j, evec_val, n_trans, bm_ctr) schedule(runtime) reduction(+ : rel_ij[0 : dim2])
     for (n = 0; n < tot_Sz[No].bm_A_size; n++)
     {
       for (m = 0; m < tot_Sz[No].bm_B_size; m++)
@@ -5620,7 +5620,7 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
         //|m>_Bの用意
         state_num_of_B = tot_Sz[No].bm_B[m];
         boost::dynamic_bitset<> ket_B(tot_site_B, state_num_of_B);
-        
+
         // ket側の固有ベクトルの用意
         evec_val = tot_Sz[No].Eig.eigen_mat[n][m];
 
@@ -5742,7 +5742,6 @@ void Subsystem_Sz::calc_sxx_rel(const int site_num, std::string dir_output)
   fclose(fp);
   delete[] rel_ij;
 }
-
 
 /*------------------------------標準出力関係------------------------------*/
 string Subsystem_Sz::to_string() const
